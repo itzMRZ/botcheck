@@ -3,1014 +3,1474 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>BotCheck</title>
+  <title>BotCheck — Robotics Hardware Validator</title>
+  <meta name="description" content="AI-powered compatibility checker for robotics builds. Validate voltage, current, logic levels, motors, sensors, and more before you power on.">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;600;700&display=swap" rel="stylesheet">
-  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
   <style>
+    /* ── Tokens ─────────────────────────────────────────────────────────── */
     :root {
-      --bg: #080810;
-      --surface: #0f0f1a;
-      --surface-2: #121223;
-      --border: #1a1a2e;
-      --border-strong: #2b2b4a;
-      --text: #f5f7fb;
-      --muted: #9ca3af;
-      --accent: #6366f1;
-      --safe: #22c55e;
-      --critical: #ef4444;
-      --warning: #f59e0b;
+      --bg:          #07080d;
+      --surface:     #0d0f1a;
+      --surface-2:   #111320;
+      --border:      rgba(255,255,255,0.07);
+      --border-2:    rgba(255,255,255,0.12);
+      --text:        #e2e8f0;
+      --text-2:      #94a3b8;
+      --text-3:      #475569;
+      --accent:      #6366f1;
+      --accent-soft: rgba(99,102,241,0.15);
+      --cyan:        #06b6d4;
+      --cyan-soft:   rgba(6,182,212,0.12);
+      --green:       #10b981;
+      --green-soft:  rgba(16,185,129,0.12);
+      --amber:       #f59e0b;
+      --amber-soft:  rgba(245,158,11,0.12);
+      --red:         #ef4444;
+      --red-soft:    rgba(239,68,68,0.12);
+      --r:           12px;
+      --r-sm:        8px;
     }
 
-    * {
-      box-sizing: border-box;
-    }
-
+    /* ── Reset ──────────────────────────────────────────────────────────── */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
     body {
       min-height: 100vh;
-      margin: 0;
-      background:
-        linear-gradient(rgba(255, 255, 255, 0.018) 1px, transparent 1px),
-        linear-gradient(90deg, rgba(255, 255, 255, 0.018) 1px, transparent 1px),
-        linear-gradient(180deg, rgba(99, 102, 241, 0.12) 0%, rgba(8, 8, 16, 0) 280px),
-        var(--bg);
-      background-size: 38px 38px, 38px 38px, auto, auto;
+      background: var(--bg);
       color: var(--text);
       font-family: "Inter", system-ui, sans-serif;
+      font-size: 14px;
+      line-height: 1.6;
+      overflow-x: hidden;
     }
+    button, select, input { font: inherit; }
+    button { cursor: pointer; }
+    h1,h2,h3,h4 { line-height: 1.2; }
+    svg { display: block; flex-shrink: 0; }
+    .mono { font-family: "JetBrains Mono", ui-monospace, monospace; }
 
-    button,
-    select {
-      font: inherit;
+    /* ── Header ─────────────────────────────────────────────────────────── */
+    .site-header {
+      position: sticky;
+      top: 0;
+      z-index: 50;
+      background: rgba(7,8,13,0.88);
+      border-bottom: 1px solid var(--border);
+      backdrop-filter: blur(16px);
     }
-
-    .font-mono {
-      font-family: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
-    }
-
-    .shell {
-      width: min(1120px, calc(100% - 32px));
-      margin: 0 auto;
-      padding: 28px 0 56px;
-    }
-
-    .panel,
-    .feedback-card,
-    .metric {
-      background: rgba(15, 15, 26, 0.88);
-      border: 1px solid var(--border);
-      border-radius: 8px;
-      box-shadow: 0 18px 60px rgba(0, 0, 0, 0.28);
-      backdrop-filter: blur(10px);
-    }
-
-    .panel {
-      padding: 22px;
-    }
-
-    .panel-accent {
-      position: relative;
-      overflow: hidden;
-    }
-
-    .panel-accent::before {
-      content: "";
-      position: absolute;
-      inset: 0 0 auto;
-      height: 2px;
-      background: linear-gradient(90deg, var(--accent), transparent 78%);
-    }
-
-    .header-panel {
-      display: grid;
-      grid-template-columns: auto 1fr;
-      gap: 16px;
+    .header-inner {
+      display: flex;
       align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      max-width: 1400px;
+      margin: 0 auto;
+      padding: 0 24px;
+      height: 60px;
     }
-
-    .icon-box {
+    .logo {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .logo-icon {
       display: grid;
-      width: 48px;
-      height: 48px;
       place-items: center;
-      border: 1px solid rgba(99, 102, 241, 0.55);
-      border-radius: 8px;
-      background: rgba(99, 102, 241, 0.13);
+      width: 36px;
+      height: 36px;
+      background: var(--accent-soft);
+      border: 1px solid rgba(99,102,241,0.4);
+      border-radius: var(--r-sm);
       color: var(--accent);
     }
-
-    .section-label {
+    .logo h1 {
+      font-family: "JetBrains Mono", monospace;
+      font-size: 1.1rem;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+    }
+    .logo p {
+      font-size: 0.72rem;
+      color: var(--text-2);
+      margin-top: 1px;
+    }
+    .header-pills {
       display: flex;
       align-items: center;
-      justify-content: space-between;
-      gap: 12px;
-      margin-bottom: 14px;
-      color: #dbe3f3;
-      font-family: "JetBrains Mono", ui-monospace, monospace;
-      font-size: 0.74rem;
-      font-weight: 700;
-      letter-spacing: 0;
-      text-transform: uppercase;
+      gap: 8px;
     }
-
-    .section-label::after {
-      content: "";
-      height: 1px;
-      flex: 1;
-      background: var(--border);
-    }
-
-    .quick-grid {
-      display: grid;
-      grid-template-columns: repeat(3, minmax(0, 1fr));
-      gap: 12px;
-    }
-
-    .preset-btn,
-    .run-btn,
-    .retry-btn {
+    .pill {
       display: inline-flex;
       align-items: center;
-      justify-content: center;
-      gap: 10px;
-      min-height: 44px;
-      border-radius: 8px;
-      border: 1px solid var(--border-strong);
-      color: var(--text);
-      transition: border-color 160ms ease, background 160ms ease, transform 160ms ease;
-    }
-
-    .preset-btn {
-      background: #101024;
-      padding: 12px 14px;
-      justify-content: space-between;
-      text-align: left;
-    }
-
-    .preset-btn:hover,
-    .feedback-card:hover {
-      border-color: rgba(99, 102, 241, 0.74);
-    }
-
-    .preset-btn:active,
-    .run-btn:active,
-    .retry-btn:active {
-      transform: translateY(1px);
-    }
-
-    .dot {
-      width: 9px;
-      height: 9px;
+      gap: 5px;
+      padding: 4px 10px;
       border-radius: 999px;
-      background: var(--muted);
-      box-shadow: 0 0 18px currentColor;
+      font-size: 0.72rem;
+      font-weight: 600;
+      border: 1px solid;
+    }
+    .pill-accent {
+      background: var(--accent-soft);
+      border-color: rgba(99,102,241,0.35);
+      color: #a5b4fc;
+    }
+    .pill-cyan {
+      background: var(--cyan-soft);
+      border-color: rgba(6,182,212,0.35);
+      color: #67e8f9;
     }
 
-    .selector-grid {
+    /* ── App Layout ──────────────────────────────────────────────────────── */
+    .app {
       display: grid;
-      grid-template-columns: repeat(3, minmax(0, 1fr));
-      gap: 14px;
-      align-items: end;
+      grid-template-columns: 380px 1fr;
+      height: calc(100vh - 60px);
+      max-width: 1400px;
+      margin: 0 auto;
     }
 
-    label {
+    /* ── Form Panel ──────────────────────────────────────────────────────── */
+    .form-panel {
+      border-right: 1px solid var(--border);
+      overflow-y: auto;
+      overflow-x: hidden;
+      display: flex;
+      flex-direction: column;
+    }
+    .form-panel::-webkit-scrollbar { width: 4px; }
+    .form-panel::-webkit-scrollbar-track { background: transparent; }
+    .form-panel::-webkit-scrollbar-thumb { background: var(--border-2); border-radius: 2px; }
+
+    .form-top {
+      padding: 20px 20px 0;
+    }
+    .form-intro {
+      font-size: 0.8rem;
+      color: var(--text-2);
+      line-height: 1.5;
+      margin-bottom: 16px;
+    }
+
+    /* ── Form Section ────────────────────────────────────────────────────── */
+    .form-section {
+      padding: 16px 20px;
+      border-bottom: 1px solid var(--border);
+    }
+    .section-head {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 12px;
+    }
+    .section-icon {
+      font-size: 1rem;
+      width: 32px;
+      height: 32px;
       display: grid;
-      gap: 8px;
-      color: var(--muted);
+      place-items: center;
+      background: var(--surface-2);
+      border: 1px solid var(--border-2);
+      border-radius: var(--r-sm);
+      flex-shrink: 0;
+    }
+    .section-meta { flex: 1; min-width: 0; }
+    .section-title {
       font-size: 0.82rem;
       font-weight: 700;
-    }
-
-    select {
-      width: 100%;
-      min-height: 46px;
-      border: 1px solid var(--border-strong);
-      border-radius: 8px;
-      background: #090916;
       color: var(--text);
-      padding: 0 14px;
-      outline: none;
-    }
-
-    select:focus {
-      border-color: var(--accent);
-      box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.18);
-    }
-
-    .run-row {
       display: flex;
-      justify-content: center;
-      margin-top: 16px;
+      align-items: center;
+      gap: 6px;
     }
-
-    .run-btn,
-    .retry-btn {
-      min-width: 190px;
-      background: var(--accent);
-      border-color: rgba(129, 140, 248, 0.7);
-      padding: 0 18px;
-      font-weight: 800;
+    .section-desc {
+      font-size: 0.72rem;
+      color: var(--text-3);
+      margin-top: 1px;
     }
-
-    .run-btn:disabled {
-      cursor: not-allowed;
-      opacity: 0.62;
-    }
-
-    .button-spinner {
-      display: none;
-      width: 15px;
-      height: 15px;
-      border: 2px solid rgba(255, 255, 255, 0.38);
-      border-top-color: #fff;
-      border-radius: 999px;
-      animation: spin 760ms linear infinite;
-    }
-
-    .run-btn.loading .button-spinner {
-      display: inline-block;
-    }
-
-    .metrics-grid {
-      display: grid;
-      grid-template-columns: repeat(3, minmax(0, 1fr));
-      gap: 12px;
-    }
-
-    .metric {
-      min-height: 78px;
-      padding: 15px;
-      display: grid;
-      gap: 7px;
-    }
-
-    .metric-label {
-      color: var(--muted);
-      font-size: 0.75rem;
-      font-weight: 800;
-      text-transform: uppercase;
-    }
-
-    .metric-value {
+    .count-chip {
       display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-width: 18px;
+      height: 18px;
+      padding: 0 5px;
+      background: var(--accent-soft);
+      border: 1px solid rgba(99,102,241,0.3);
+      border-radius: 999px;
+      font-size: 0.65rem;
+      font-weight: 700;
+      color: #a5b4fc;
+      font-family: "JetBrains Mono", monospace;
+    }
+
+    /* ── Toggle Switch ───────────────────────────────────────────────────── */
+    .toggle-wrap {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      margin-left: auto;
+      flex-shrink: 0;
+    }
+    .toggle-label {
+      font-size: 0.7rem;
+      color: var(--text-3);
+    }
+    .toggle {
+      position: relative;
+      width: 32px;
+      height: 18px;
+    }
+    .toggle input {
+      opacity: 0;
+      width: 0;
+      height: 0;
+      position: absolute;
+    }
+    .toggle-track {
+      position: absolute;
+      inset: 0;
+      background: var(--surface-2);
+      border: 1px solid var(--border-2);
+      border-radius: 999px;
+      cursor: pointer;
+      transition: background 200ms, border-color 200ms;
+    }
+    .toggle input:checked ~ .toggle-track {
+      background: var(--accent);
+      border-color: var(--accent);
+    }
+    .toggle-thumb {
+      position: absolute;
+      top: 2px;
+      left: 2px;
+      width: 12px;
+      height: 12px;
+      background: white;
+      border-radius: 999px;
+      transition: transform 200ms;
+      pointer-events: none;
+    }
+    .toggle input:checked ~ .toggle-track .toggle-thumb {
+      transform: translateX(14px);
+    }
+
+    /* ── Component Row ───────────────────────────────────────────────────── */
+    .comp-row {
+      display: flex;
+      gap: 6px;
+      align-items: center;
+      margin-bottom: 6px;
+    }
+    .comp-select-wrap {
+      position: relative;
+      flex: 1;
+      min-width: 0;
+    }
+    .comp-select {
+      width: 100%;
+      height: 38px;
+      background: var(--surface-2);
+      border: 1px solid var(--border-2);
+      border-radius: var(--r-sm);
+      color: var(--text);
+      padding: 0 32px 0 10px;
+      outline: none;
+      appearance: none;
+      cursor: pointer;
+      transition: border-color 150ms;
+      text-overflow: ellipsis;
+      font-size: 0.82rem;
+    }
+    .comp-select:focus { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); }
+    .comp-select-arrow {
+      position: absolute;
+      right: 10px;
+      top: 50%;
+      transform: translateY(-50%);
+      pointer-events: none;
+      color: var(--text-3);
+    }
+    .comp-custom {
+      flex: 1;
+      height: 38px;
+      background: var(--surface-2);
+      border: 1px solid rgba(99,102,241,0.45);
+      border-radius: var(--r-sm);
+      color: var(--text);
+      padding: 0 10px;
+      outline: none;
+      font-size: 0.82rem;
+      transition: border-color 150ms;
+    }
+    .comp-custom:focus { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); }
+    .comp-custom::placeholder { color: var(--text-3); }
+    .comp-custom[hidden] { display: none; }
+    .comp-remove {
+      width: 32px;
+      height: 32px;
+      background: transparent;
+      border: 1px solid var(--border-2);
+      border-radius: var(--r-sm);
+      color: var(--text-3);
+      display: grid;
+      place-items: center;
+      flex-shrink: 0;
+      transition: background 150ms, color 150ms, border-color 150ms;
+    }
+    .comp-remove:hover { background: var(--red-soft); border-color: rgba(239,68,68,0.4); color: #fca5a5; }
+
+    /* ── Add Button ──────────────────────────────────────────────────────── */
+    .add-btn {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      height: 32px;
+      padding: 0 12px;
+      background: transparent;
+      border: 1px dashed var(--border-2);
+      border-radius: var(--r-sm);
+      color: var(--text-2);
+      font-size: 0.78rem;
+      font-weight: 500;
+      width: 100%;
+      justify-content: center;
+      transition: border-color 150ms, background 150ms, color 150ms;
+      margin-top: 4px;
+    }
+    .add-btn:hover { border-color: var(--accent); background: var(--accent-soft); color: #a5b4fc; }
+
+    /* ── Driver body (hideable) ──────────────────────────────────────────── */
+    .driver-body { margin-top: 4px; }
+    .driver-body[hidden] { display: none; }
+
+    /* ── Run Button ──────────────────────────────────────────────────────── */
+    .run-wrap {
+      padding: 16px 20px 24px;
+      margin-top: auto;
+      position: sticky;
+      bottom: 0;
+      background: linear-gradient(to top, var(--bg) 60%, transparent);
+    }
+    .run-btn {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      width: 100%;
+      height: 48px;
+      background: linear-gradient(135deg, #6366f1, #4f46e5);
+      border: 1px solid rgba(129,140,248,0.5);
+      border-radius: var(--r);
+      color: white;
+      font-size: 0.9rem;
+      font-weight: 700;
+      letter-spacing: -0.01em;
+      box-shadow: 0 4px 24px rgba(99,102,241,0.3);
+      transition: opacity 200ms, transform 150ms, box-shadow 200ms;
+    }
+    .run-btn:hover:not(:disabled) { box-shadow: 0 4px 32px rgba(99,102,241,0.5); transform: translateY(-1px); }
+    .run-btn:active:not(:disabled) { transform: translateY(0); }
+    .run-btn:disabled { opacity: 0.6; cursor: not-allowed; }
+    .run-btn.loading { pointer-events: none; }
+    .spinner {
+      width: 16px;
+      height: 16px;
+      border: 2px solid rgba(255,255,255,0.3);
+      border-top-color: white;
+      border-radius: 999px;
+      animation: spin 700ms linear infinite;
+    }
+    .spinner[hidden] { display: none; }
+
+    /* ── Results Panel ───────────────────────────────────────────────────── */
+    .results-panel {
+      overflow-y: auto;
+      overflow-x: hidden;
+      background: var(--bg);
+    }
+    .results-panel::-webkit-scrollbar { width: 4px; }
+    .results-panel::-webkit-scrollbar-thumb { background: var(--border-2); border-radius: 2px; }
+
+    /* ── Empty State ─────────────────────────────────────────────────────── */
+    .empty-state {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      height: 100%;
+      gap: 12px;
+      padding: 40px;
+      text-align: center;
+    }
+    .empty-bot {
+      font-size: 3.5rem;
+      filter: grayscale(0.3);
+      animation: float 3s ease-in-out infinite;
+    }
+    .empty-state h2 {
+      font-size: 1.1rem;
+      font-weight: 700;
+      color: var(--text);
+    }
+    .empty-state p {
+      color: var(--text-2);
+      font-size: 0.85rem;
+      line-height: 1.6;
+    }
+    .empty-state strong { color: #a5b4fc; }
+    .empty-steps {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      margin-top: 8px;
+      text-align: left;
+    }
+    .empty-step {
+      display: flex;
       align-items: center;
       gap: 10px;
-      font-family: "JetBrains Mono", ui-monospace, monospace;
-      font-size: 1.05rem;
-      font-weight: 700;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--r-sm);
+      padding: 8px 14px;
+      font-size: 0.8rem;
+      color: var(--text-2);
+    }
+    .empty-step-num {
+      width: 20px;
+      height: 20px;
+      background: var(--accent-soft);
+      border: 1px solid rgba(99,102,241,0.3);
+      border-radius: 999px;
+      display: grid;
+      place-items: center;
+      font-size: 0.65rem;
+      font-weight: 800;
+      color: #a5b4fc;
+      flex-shrink: 0;
+      font-family: "JetBrains Mono", monospace;
     }
 
-    .badge {
+    /* ── Skeleton Loader ─────────────────────────────────────────────────── */
+    .loading-state {
+      padding: 24px;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 14px;
+      align-content: start;
+    }
+    .loading-state[hidden] { display: none; }
+    .skel-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--r);
+      padding: 18px;
+      min-height: 160px;
+    }
+    .skel-line {
+      height: 12px;
+      border-radius: 999px;
+      background: linear-gradient(90deg, var(--surface-2) 25%, rgba(255,255,255,0.04) 50%, var(--surface-2) 75%);
+      background-size: 300% 100%;
+      animation: shimmer 1.3s ease infinite;
+      margin-top: 12px;
+    }
+    .skel-line.w30 { width: 30%; }
+    .skel-line.w55 { width: 55%; }
+    .skel-line.w80 { width: 80%; }
+    .skel-line.w95 { width: 95%; }
+
+    /* ── Error State ─────────────────────────────────────────────────────── */
+    .error-state {
+      display: flex;
+      align-items: flex-start;
+      gap: 14px;
+      margin: 24px;
+      padding: 16px;
+      background: var(--red-soft);
+      border: 1px solid rgba(239,68,68,0.35);
+      border-radius: var(--r);
+      animation: fadeIn 250ms ease;
+    }
+    .error-state[hidden] { display: none; }
+    .error-icon { color: #fca5a5; flex-shrink: 0; margin-top: 2px; }
+    .error-msg { font-size: 0.82rem; font-weight: 600; color: #fecaca; }
+    .error-detail { font-size: 0.78rem; color: #fca5a5; margin-top: 3px; }
+    .retry-btn {
+      margin-left: auto;
+      flex-shrink: 0;
+      height: 34px;
+      padding: 0 14px;
+      background: rgba(239,68,68,0.2);
+      border: 1px solid rgba(239,68,68,0.4);
+      border-radius: var(--r-sm);
+      color: #fecaca;
+      font-size: 0.78rem;
+      font-weight: 600;
+      transition: background 150ms;
+    }
+    .retry-btn:hover { background: rgba(239,68,68,0.3); }
+
+    /* ── Results Content ─────────────────────────────────────────────────── */
+    .results-content { padding: 24px; }
+    .results-content[hidden] { display: none; }
+
+    /* ── Score Hero ──────────────────────────────────────────────────────── */
+    .score-hero {
+      display: flex;
+      align-items: center;
+      gap: 24px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--r);
+      padding: 24px;
+      margin-bottom: 16px;
+      animation: fadeSlideUp 0.4s ease forwards;
+    }
+    .gauge-wrap { flex-shrink: 0; }
+    .score-gauge {
+      width: 120px;
+      height: 120px;
+    }
+    .gauge-track { transition: none; }
+    .gauge-arc {
+      transition: stroke-dashoffset 1s cubic-bezier(0.34, 1.56, 0.64, 1), stroke 0.5s ease;
+      transform-origin: center;
+      transform: rotate(-90deg);
+    }
+    .gauge-score-text {
+      font-family: "JetBrains Mono", monospace;
+      font-size: 28px;
+      font-weight: 800;
+      fill: var(--text);
+    }
+    .gauge-label-text {
+      font-size: 10px;
+      font-weight: 600;
+      fill: var(--text-3);
+      letter-spacing: 0.05em;
+    }
+    .score-meta { flex: 1; min-width: 0; }
+    .verdict-badge {
       display: inline-flex;
       align-items: center;
-      justify-content: center;
-      gap: 5px;
-      min-height: 26px;
-      border-radius: 6px;
-      border: 1px solid rgba(156, 163, 175, 0.3);
-      padding: 4px 9px;
-      font-family: "JetBrains Mono", ui-monospace, monospace;
-      font-size: 0.72rem;
+      gap: 7px;
+      padding: 6px 14px;
+      border-radius: 999px;
+      font-size: 0.8rem;
       font-weight: 800;
-      text-transform: uppercase;
-      color: #d7dcea;
-      background: rgba(156, 163, 175, 0.1);
-      white-space: nowrap;
+      letter-spacing: 0.05em;
+      border: 1px solid;
+      margin-bottom: 12px;
     }
-
-    .badge svg {
-      width: 13px;
-      height: 13px;
+    .verdict-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 999px;
     }
-
-    .badge-safe,
-    .badge-pass,
-    .badge-ok,
-    .badge-true {
-      border-color: rgba(34, 197, 94, 0.5);
-      background: rgba(34, 197, 94, 0.12);
-      color: #86efac;
+    .verdict-ready    { background: var(--green-soft); border-color: rgba(16,185,129,0.4); color: #6ee7b7; }
+    .verdict-review   { background: var(--amber-soft); border-color: rgba(245,158,11,0.4); color: #fcd34d; }
+    .verdict-bad      { background: var(--red-soft);   border-color: rgba(239,68,68,0.4);  color: #fca5a5; }
+    .highlights-list {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
     }
-
-    .badge-critical,
-    .badge-fail,
-    .badge-mismatch,
-    .badge-false {
-      border-color: rgba(239, 68, 68, 0.52);
-      background: rgba(239, 68, 68, 0.12);
-      color: #fca5a5;
+    .highlight-item {
+      display: flex;
+      align-items: flex-start;
+      gap: 7px;
+      font-size: 0.79rem;
+      color: var(--text-2);
+      line-height: 1.4;
     }
+    .hl-icon { flex-shrink: 0; margin-top: 1px; }
 
-    .badge-warning {
-      border-color: rgba(245, 158, 11, 0.52);
-      background: rgba(245, 158, 11, 0.12);
-      color: #fcd34d;
-    }
-
-    .feedback-grid {
+    /* ── Cards Grid ──────────────────────────────────────────────────────── */
+    .cards-grid {
       display: grid;
-      grid-template-columns: repeat(2, minmax(0, 1fr));
+      grid-template-columns: 1fr 1fr;
       gap: 14px;
     }
-
-    .feedback-card {
-      min-height: 188px;
+    .result-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--r);
       padding: 18px;
-      transition: border-color 160ms ease;
+      opacity: 0;
+      animation: fadeSlideUp 0.4s ease forwards;
     }
+    .result-card.full-width { grid-column: 1 / -1; }
+    .result-card.card-ok    { border-color: rgba(16,185,129,0.3); }
+    .result-card.card-warn  { border-color: rgba(245,158,11,0.3); }
+    .result-card.card-bad   { border-color: rgba(239,68,68,0.35); background: rgba(239,68,68,0.04); }
 
-    .feedback-card h3 {
-      margin: 12px 0 11px;
-      font-size: 1.03rem;
-      line-height: 1.28;
-      font-weight: 800;
-      letter-spacing: 0;
-    }
-
-    .feedback-card p {
-      margin: 8px 0 0;
-      color: #c6ccda;
-      line-height: 1.58;
-      font-size: 0.92rem;
-    }
-
-    .feedback-card header {
+    .card-header {
       display: flex;
       align-items: center;
       justify-content: space-between;
-      gap: 12px;
-      color: var(--muted);
-      font-family: "JetBrains Mono", ui-monospace, monospace;
-      font-size: 0.73rem;
-      font-weight: 800;
+      gap: 8px;
+      margin-bottom: 10px;
+    }
+    .card-label {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-family: "JetBrains Mono", monospace;
+      font-size: 0.68rem;
+      font-weight: 700;
       text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--text-3);
     }
+    .card-label-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 999px;
+      flex-shrink: 0;
+    }
+    .status-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      padding: 3px 8px;
+      border-radius: 5px;
+      font-size: 0.68rem;
+      font-weight: 800;
+      font-family: "JetBrains Mono", monospace;
+      letter-spacing: 0.03em;
+      border: 1px solid;
+    }
+    .sb-safe   { background: var(--green-soft); border-color: rgba(16,185,129,0.4); color: #6ee7b7; }
+    .sb-warn   { background: var(--amber-soft); border-color: rgba(245,158,11,0.4); color: #fcd34d; }
+    .sb-bad    { background: var(--red-soft);   border-color: rgba(239,68,68,0.4);  color: #fca5a5; }
+    .sb-ok     { background: var(--green-soft); border-color: rgba(16,185,129,0.4); color: #6ee7b7; }
+    .sb-mismatch{ background: var(--red-soft);  border-color: rgba(239,68,68,0.4);  color: #fca5a5; }
+    .sb-shift  { background: var(--amber-soft); border-color: rgba(245,158,11,0.4); color: #fcd34d; }
 
-    .feedback-card.critical {
-      border-color: rgba(239, 68, 68, 0.42);
+    .card-headline {
+      font-size: 0.9rem;
+      font-weight: 700;
+      color: var(--text);
+      margin-bottom: 6px;
+      line-height: 1.3;
     }
+    .card-body {
+      font-size: 0.8rem;
+      color: var(--text-2);
+      line-height: 1.6;
+    }
+    .card-body p + p { margin-top: 6px; }
 
-    .feedback-card.safe {
-      border-color: rgba(34, 197, 94, 0.38);
+    .compat-row {
+      display: flex;
+      align-items: flex-start;
+      gap: 8px;
+      margin-bottom: 8px;
+      padding-bottom: 8px;
+      border-bottom: 1px solid var(--border);
     }
+    .compat-row:last-child { border-bottom: none; margin-bottom: 0; padding-bottom: 0; }
+    .compat-label {
+      font-size: 0.72rem;
+      font-weight: 700;
+      color: var(--text-3);
+      width: 70px;
+      flex-shrink: 0;
+      padding-top: 1px;
+    }
+    .compat-detail { flex: 1; font-size: 0.79rem; color: var(--text-2); }
 
     .part-chip {
       display: inline-flex;
-      width: fit-content;
-      max-width: 100%;
-      margin-top: 14px;
-      border: 1px solid rgba(99, 102, 241, 0.62);
-      border-radius: 6px;
-      padding: 7px 9px;
-      background: rgba(99, 102, 241, 0.14);
-      color: #c7d2fe;
-      font-family: "JetBrains Mono", ui-monospace, monospace;
+      align-items: center;
+      gap: 6px;
+      margin-top: 8px;
+      padding: 6px 10px;
+      background: var(--accent-soft);
+      border: 1px solid rgba(99,102,241,0.35);
+      border-radius: var(--r-sm);
+      font-family: "JetBrains Mono", monospace;
       font-size: 0.78rem;
-      white-space: normal;
+      color: #c7d2fe;
     }
 
-    .spec-line {
-      color: var(--muted) !important;
-    }
-
-    .compat-row {
-      display: grid;
-      grid-template-columns: minmax(74px, auto) auto 1fr;
-      align-items: center;
-      gap: 10px;
-      margin-top: 14px;
-    }
-
-    .compat-row strong {
-      font-size: 0.83rem;
-      color: #e5e7eb;
-    }
-
-    .state-banner {
-      display: none;
-      align-items: center;
-      justify-content: space-between;
-      gap: 16px;
-      margin-bottom: 14px;
-      border: 1px solid rgba(239, 68, 68, 0.52);
-      border-radius: 8px;
-      background: rgba(239, 68, 68, 0.12);
-      padding: 14px;
-      color: #fecaca;
-    }
-
-    .state-banner p {
-      margin: 4px 0 0;
-      color: #fca5a5;
-      font-size: 0.88rem;
-    }
-
-    .feedback-section[hidden],
-    .feedback-grid[hidden],
-    .skeleton-grid[hidden] {
-      display: none;
-    }
-
-    .skeleton-grid {
-      display: grid;
-      grid-template-columns: repeat(2, minmax(0, 1fr));
-      gap: 14px;
-    }
-
-    .skeleton-card {
-      min-height: 188px;
-      border: 1px solid var(--border);
-      border-radius: 8px;
-      background: var(--surface);
-      padding: 18px;
-      overflow: hidden;
-    }
-
-    .skeleton-line {
-      height: 14px;
-      margin-top: 14px;
+    .weight-bar-wrap { margin-top: 10px; }
+    .weight-bar-track {
+      height: 6px;
+      background: var(--surface-2);
       border-radius: 999px;
-      background: linear-gradient(90deg, #151529, #252545, #151529);
-      background-size: 220% 100%;
-      animation: pulse 1.15s infinite ease-in-out;
+      overflow: hidden;
+      margin-bottom: 6px;
+    }
+    .weight-bar-fill {
+      height: 100%;
+      border-radius: 999px;
+      transition: width 0.8s cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
+    .weight-labels {
+      display: flex;
+      justify-content: space-between;
+      font-size: 0.65rem;
+      color: var(--text-3);
+      font-family: "JetBrains Mono", monospace;
     }
 
-    .skeleton-line.short {
-      width: 42%;
+    .sensor-issues { margin-top: 8px; display: flex; flex-direction: column; gap: 4px; }
+    .sensor-issue {
+      display: flex;
+      align-items: flex-start;
+      gap: 6px;
+      font-size: 0.78rem;
+      color: #fcd34d;
+      line-height: 1.4;
+    }
+    .sensor-issue-dot { flex-shrink: 0; margin-top: 5px; width: 5px; height: 5px; border-radius: 999px; background: var(--amber); }
+
+    /* ── Animations ──────────────────────────────────────────────────────── */
+    @keyframes spin      { to { transform: rotate(360deg); } }
+    @keyframes shimmer   { 0% { background-position: 100% 0; } 100% { background-position: -100% 0; } }
+    @keyframes float     { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-8px); } }
+    @keyframes fadeIn    { from { opacity: 0; } to { opacity: 1; } }
+    @keyframes fadeSlideUp {
+      from { opacity: 0; transform: translateY(14px); }
+      to   { opacity: 1; transform: translateY(0); }
     }
 
-    .skeleton-line.medium {
-      width: 70%;
+    /* ── Responsive ──────────────────────────────────────────────────────── */
+    @media (max-width: 900px) {
+      .app { grid-template-columns: 1fr; height: auto; }
+      .form-panel { border-right: none; border-bottom: 1px solid var(--border); max-height: none; overflow: visible; }
+      .results-panel { overflow: visible; }
+      .header-pills .pill-cyan { display: none; }
+      .cards-grid { grid-template-columns: 1fr; }
+      .result-card.full-width { grid-column: 1; }
+      .score-hero { flex-direction: column; align-items: flex-start; gap: 16px; }
+      .run-wrap { position: static; }
     }
-
-    .skeleton-line.long {
-      width: 92%;
-    }
-
-    @keyframes pulse {
-      0% { background-position: 100% 50%; }
-      100% { background-position: 0% 50%; }
-    }
-
-    @keyframes spin {
-      to { transform: rotate(360deg); }
-    }
-
-    @media (max-width: 800px) {
-      .shell {
-        width: min(100% - 24px, 1120px);
-        padding-top: 18px;
-      }
-
-      .quick-grid,
-      .selector-grid,
-      .metrics-grid,
-      .feedback-grid,
-      .skeleton-grid {
-        grid-template-columns: 1fr;
-      }
-
-      .header-panel {
-        grid-template-columns: 1fr;
-      }
-
-      .icon-box {
-        width: 44px;
-        height: 44px;
-      }
+    @media (max-width: 480px) {
+      .header-inner { padding: 0 16px; }
+      .results-content, .loading-state { padding: 16px; }
+      .loading-state { grid-template-columns: 1fr; }
     }
   </style>
 </head>
 <body>
-  <main class="shell">
-    <section class="panel panel-accent header-panel">
-      <div class="icon-box" aria-hidden="true">
-        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" role="img">
-          <path d="M6 4v5M18 4v5M4 9h16M7 9v11M17 9v11M7 15h10" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/>
-          <circle cx="7" cy="20" r="1.7" fill="currentColor"/>
-          <circle cx="17" cy="20" r="1.7" fill="currentColor"/>
-        </svg>
-      </div>
-      <div>
-        <h1 class="font-mono text-3xl sm:text-4xl font-extrabold tracking-normal">BotCheck</h1>
-        <p class="mt-2 text-slate-400">Electrical validation for robotics builds</p>
-      </div>
-    </section>
 
-    <section class="panel mt-5">
-      <div class="section-label">Quick Tests</div>
-      <div class="quick-grid" id="presetGrid"></div>
-    </section>
-
-    <section class="panel mt-5">
-      <div class="section-label">Build Selector</div>
-      <div class="selector-grid">
-        <label>
-          Brain
-          <select id="brainSelect" aria-label="Brain component"></select>
-        </label>
-        <label>
-          Actuator
-          <select id="actuatorSelect" aria-label="Actuator component"></select>
-        </label>
-        <label>
-          Power
-          <select id="powerSelect" aria-label="Power component"></select>
-        </label>
-      </div>
-      <div class="run-row">
-        <button class="run-btn" id="runButton" type="button">
-          <span class="button-spinner" aria-hidden="true"></span>
-          <span class="button-label">Run BotCheck</span>
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-            <path d="M5 12h14M13 6l6 6-6 6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+  <header class="site-header">
+    <div class="header-inner">
+      <div class="logo">
+        <div class="logo-icon">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+            <path d="M6 4v5M18 4v5M4 9h16M7 9v10M17 9v10M7 14h10" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+            <circle cx="7" cy="19" r="1.5" fill="currentColor"/>
+            <circle cx="17" cy="19" r="1.5" fill="currentColor"/>
           </svg>
+        </div>
+        <div>
+          <h1>BotCheck</h1>
+          <p>Robotics Hardware Validator</p>
+        </div>
+      </div>
+      <div class="header-pills">
+        <span class="pill pill-accent">
+          <svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor"><path d="M13 2 4 14h7l-1 8 9-13h-7Z"/></svg>
+          AI-Powered
+        </span>
+        <span class="pill pill-cyan">55+ Components</span>
+      </div>
+    </div>
+  </header>
+
+  <div class="app">
+
+    <!-- ── Form Panel ───────────────────────────────────────────────── -->
+    <aside class="form-panel" id="formPanel">
+      <div class="form-top">
+        <p class="form-intro">Pick components or type any name — the AI will identify and validate it. <strong style="color:#a5b4fc">All fields except sensors &amp; comms are required.</strong></p>
+      </div>
+
+      <!-- Brain -->
+      <div class="form-section" id="sec-brain">
+        <div class="section-head">
+          <div class="section-icon">🧠</div>
+          <div class="section-meta">
+            <div class="section-title">Brain / Controller</div>
+            <div class="section-desc">Main microcontroller or SBC</div>
+          </div>
+        </div>
+        <div id="brain-slot"></div>
+      </div>
+
+      <!-- Power -->
+      <div class="form-section" id="sec-power">
+        <div class="section-head">
+          <div class="section-icon">⚡</div>
+          <div class="section-meta">
+            <div class="section-title">Power Source</div>
+            <div class="section-desc">Main supply — LiPo, NiMH, bank…</div>
+          </div>
+        </div>
+        <div id="power-slot"></div>
+      </div>
+
+      <!-- Motor Driver -->
+      <div class="form-section" id="sec-driver">
+        <div class="section-head">
+          <div class="section-icon">🔌</div>
+          <div class="section-meta">
+            <div class="section-title">Motor Driver / ESC</div>
+            <div class="section-desc">Skip for servo-only builds</div>
+          </div>
+          <div class="toggle-wrap">
+            <span class="toggle-label" id="driver-toggle-lbl">On</span>
+            <label class="toggle" aria-label="Include motor driver">
+              <input type="checkbox" id="driver-toggle" checked>
+              <div class="toggle-track"><div class="toggle-thumb"></div></div>
+            </label>
+          </div>
+        </div>
+        <div id="driver-body" class="driver-body">
+          <div id="driver-slot"></div>
+        </div>
+      </div>
+
+      <!-- Motors -->
+      <div class="form-section" id="sec-motors">
+        <div class="section-head">
+          <div class="section-icon">⚙️</div>
+          <div class="section-meta">
+            <div class="section-title">
+              Motors
+              <span class="count-chip" id="motors-count">1</span>
+            </div>
+            <div class="section-desc">DC, servo, stepper, BLDC — add multiple</div>
+          </div>
+        </div>
+        <div id="motors-list"></div>
+        <button type="button" class="add-btn" id="add-motor-btn">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none"><path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg>
+          Add Motor
         </button>
       </div>
-    </section>
 
-    <section class="panel mt-5">
-      <div class="section-label">Metrics</div>
-      <div class="metrics-grid">
-        <article class="metric">
-          <span class="metric-label">Weight</span>
-          <span class="metric-value">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-              <path d="M6 21h12M7 21l2-12h6l2 12M9 9l3-6 3 6" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/>
-            </svg>
-            <span id="weightMetric">--</span>
-          </span>
-        </article>
-        <article class="metric">
-          <span class="metric-label">Supply</span>
-          <span class="metric-value">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-              <path d="M13 2 4 14h7l-1 8 10-13h-7l1-7Z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/>
-            </svg>
-            <span id="voltageMetric">--</span>
-          </span>
-        </article>
-        <article class="metric">
-          <span class="metric-label">Status</span>
-          <span class="metric-value" id="statusMetric">
-            <span class="badge">--</span>
-          </span>
-        </article>
-      </div>
-    </section>
-
-    <section class="feedback-section panel mt-5" id="feedbackSection" hidden>
-      <div class="section-label">AI Feedback Blocks</div>
-      <div class="state-banner" id="errorBanner">
-        <div>
-          <strong>BotCheck failed to connect. Retry.</strong>
-          <p id="errorDetail">Check the serverless function and environment variables.</p>
+      <!-- Sensors -->
+      <div class="form-section" id="sec-sensors">
+        <div class="section-head">
+          <div class="section-icon">📡</div>
+          <div class="section-meta">
+            <div class="section-title">
+              Sensors
+              <span class="count-chip" id="sensors-count" hidden>0</span>
+            </div>
+            <div class="section-desc">Ultrasonic, IMU, GPS, camera… (optional)</div>
+          </div>
         </div>
-        <button class="retry-btn" id="retryButton" type="button">Retry</button>
+        <div id="sensors-list"></div>
+        <button type="button" class="add-btn" id="add-sensor-btn">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none"><path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg>
+          Add Sensor
+        </button>
       </div>
-      <div class="skeleton-grid" id="skeletonGrid" hidden>
-        <article class="skeleton-card">
-          <div class="skeleton-line short"></div>
-          <div class="skeleton-line long"></div>
-          <div class="skeleton-line medium"></div>
-          <div class="skeleton-line long"></div>
-        </article>
-        <article class="skeleton-card">
-          <div class="skeleton-line short"></div>
-          <div class="skeleton-line medium"></div>
-          <div class="skeleton-line long"></div>
-          <div class="skeleton-line medium"></div>
-        </article>
-        <article class="skeleton-card">
-          <div class="skeleton-line short"></div>
-          <div class="skeleton-line long"></div>
-          <div class="skeleton-line long"></div>
-          <div class="skeleton-line medium"></div>
-        </article>
-        <article class="skeleton-card">
-          <div class="skeleton-line short"></div>
-          <div class="skeleton-line medium"></div>
-          <div class="skeleton-line long"></div>
-          <div class="skeleton-line short"></div>
-        </article>
-      </div>
-      <div class="feedback-grid" id="feedbackGrid" hidden>
-        <article class="feedback-card" id="powerCard">
-          <header>
-            <span>Power</span>
-            <span id="powerStatusBadge"></span>
-          </header>
-          <h3 id="powerHeadline"></h3>
-          <div id="powerReason"></div>
-        </article>
 
-        <article class="feedback-card" id="fixCard">
-          <header>
-            <span>Recommended Fix</span>
-            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-              <path d="m14.7 6.3 3-3a4.8 4.8 0 0 1-6.2 6.2l-7.2 7.2a2.1 2.1 0 1 0 3 3l7.2-7.2a4.8 4.8 0 0 1 6.2-6.2l-3 3-3-3Z" stroke="currentColor" stroke-width="1.55" stroke-linecap="round" stroke-linejoin="round"/>
+      <!-- Comms -->
+      <div class="form-section" id="sec-comms">
+        <div class="section-head">
+          <div class="section-icon">📶</div>
+          <div class="section-meta">
+            <div class="section-title">
+              Communication
+              <span class="count-chip" id="comms-count" hidden>0</span>
+            </div>
+            <div class="section-desc">Bluetooth, WiFi, LoRa, RF… (optional)</div>
+          </div>
+        </div>
+        <div id="comms-list"></div>
+        <button type="button" class="add-btn" id="add-comm-btn">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none"><path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg>
+          Add Module
+        </button>
+      </div>
+
+      <!-- Run -->
+      <div class="run-wrap">
+        <button type="button" class="run-btn" id="run-btn">
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+            <path d="M8 5.14v14l11-7-11-7Z" fill="currentColor"/>
+          </svg>
+          <span id="run-label">Run BotCheck</span>
+          <span class="spinner" id="run-spinner" hidden></span>
+        </button>
+      </div>
+    </aside>
+
+    <!-- ── Results Panel ─────────────────────────────────────────────── -->
+    <section class="results-panel" id="resultsPanel">
+
+      <!-- Empty -->
+      <div class="empty-state" id="empty-state">
+        <div class="empty-bot">🤖</div>
+        <h2>Your build, validated.</h2>
+        <p>Configure components on the left,<br>then click <strong>Run BotCheck</strong>.</p>
+        <div class="empty-steps">
+          <div class="empty-step"><div class="empty-step-num">1</div>Pick a brain, power source, and motors</div>
+          <div class="empty-step"><div class="empty-step-num">2</div>Optionally add a driver, sensors, and comms</div>
+          <div class="empty-step"><div class="empty-step-num">3</div>Type any part name for custom AI lookup</div>
+          <div class="empty-step"><div class="empty-step-num">4</div>Run BotCheck — get your score in seconds</div>
+        </div>
+      </div>
+
+      <!-- Loading -->
+      <div class="loading-state" id="loading-state" hidden>
+        <div class="skel-card" style="grid-column:1/-1;min-height:120px;">
+          <div class="skel-line w30"></div>
+          <div class="skel-line w55"></div>
+          <div class="skel-line w80" style="margin-top:8px"></div>
+          <div class="skel-line w95" style="margin-top:4px"></div>
+        </div>
+        <div class="skel-card"><div class="skel-line w30"></div><div class="skel-line w80"></div><div class="skel-line w55"></div><div class="skel-line w95"></div></div>
+        <div class="skel-card"><div class="skel-line w30"></div><div class="skel-line w55"></div><div class="skel-line w80"></div><div class="skel-line w55"></div></div>
+        <div class="skel-card"><div class="skel-line w30"></div><div class="skel-line w95"></div><div class="skel-line w55"></div><div class="skel-line w80"></div></div>
+        <div class="skel-card"><div class="skel-line w30"></div><div class="skel-line w80"></div><div class="skel-line w30"></div><div class="skel-line w55"></div></div>
+      </div>
+
+      <!-- Error -->
+      <div class="error-state" id="error-state" hidden>
+        <div class="error-icon">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="1.7"/><path d="M12 8v5M12 16h.01" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+        </div>
+        <div>
+          <div class="error-msg">BotCheck failed</div>
+          <div class="error-detail" id="error-detail">Check your environment variables and try again.</div>
+        </div>
+        <button type="button" class="retry-btn" id="retry-btn">Retry</button>
+      </div>
+
+      <!-- Results -->
+      <div class="results-content" id="results-content" hidden>
+
+        <!-- Score hero -->
+        <div class="score-hero" id="score-hero">
+          <div class="gauge-wrap">
+            <svg class="score-gauge" viewBox="0 0 120 120" aria-label="Build score">
+              <circle class="gauge-track" cx="60" cy="60" r="50" fill="none" stroke="rgba(255,255,255,0.06)" stroke-width="9"/>
+              <circle class="gauge-arc" id="gauge-arc" cx="60" cy="60" r="50" fill="none"
+                stroke="#10b981" stroke-width="9" stroke-linecap="round"
+                stroke-dasharray="314.159" stroke-dashoffset="314.159"/>
+              <text class="gauge-score-text" id="gauge-score" x="60" y="56" text-anchor="middle" dominant-baseline="middle">0</text>
+              <text class="gauge-label-text mono" x="60" y="72" text-anchor="middle">SCORE</text>
             </svg>
-          </header>
-          <div id="fixBody"></div>
-        </article>
+          </div>
+          <div class="score-meta">
+            <div class="verdict-badge" id="verdict-badge">
+              <span class="verdict-dot" id="verdict-dot"></span>
+              <span id="verdict-text">—</span>
+            </div>
+            <div class="highlights-list" id="highlights-list"></div>
+          </div>
+        </div>
 
-        <article class="feedback-card" id="compatCard">
-          <header>
-            <span>Compatibility</span>
-          </header>
-          <div id="compatBody"></div>
-        </article>
-
-        <article class="feedback-card" id="weightCard">
-          <header>
-            <span>Weight</span>
-            <span id="weightBadge"></span>
-          </header>
-          <p id="weightNote"></p>
-        </article>
+        <!-- Cards -->
+        <div class="cards-grid" id="cards-grid"></div>
       </div>
+
     </section>
-  </main>
+  </div>
 
   <script>
-    const DB = {
-      brains: {
-        "Arduino Uno": { logic_v: 5.0, min_vin: 7.0, max_vin: 12.0, weight_kg: 0.025 },
-        "ESP32":       { logic_v: 3.3, min_vin: 4.5, max_vin: 5.5,  weight_kg: 0.010 },
-      },
-      actuators: {
-        "SG90 Micro Servo": { op_v: 5.0, max_v: 6.0, current_a: 0.500, weight_kg: 0.009 },
-        "N20 Gear Motor":   { op_v: 6.0, max_v: 6.0, current_a: 1.200, weight_kg: 0.015 },
-      },
-      power: {
-        "3S LiPo (11.1V)": { voltage: 11.1, weight_kg: 0.130 },
-        "1S LiPo (3.7V)":  { voltage: 3.7,  weight_kg: 0.030 },
-        "5V Power Bank":    { voltage: 5.0,  weight_kg: 0.150 },
-      }
+    // ── Options data ────────────────────────────────────────────────────────
+    const OPTS = {
+      brains: ["Arduino Uno","Arduino Nano","Arduino Mega 2560","ESP32","ESP8266 NodeMCU","Raspberry Pi Zero 2W","Raspberry Pi 4B","STM32 Blue Pill","Teensy 4.0","Arduino Pro Mini 5V","Arduino Pro Mini 3.3V"],
+      power:  ["1S LiPo (3.7V)","2S LiPo (7.4V)","3S LiPo (11.1V)","4S LiPo (14.8V)","5V USB Power Bank","7.2V NiMH Pack","9V PP3 Battery","12V Lead Acid","18650 Cell (3.7V)","2x 18650 (7.4V)"],
+      motorDrivers: ["L298N","L293D","DRV8833","TB6612FNG","DRV8825","A4988","BTS7960","ESC 30A","ESC 20A"],
+      motors: ["SG90 Micro Servo","MG996R Servo","N20 Gear Motor","TT Gear Motor","775 DC Motor","28BYJ-48 Stepper","NEMA 17 Stepper","Brushless 2204 BLDC","Brushless 2212 BLDC"],
+      sensors:["HC-SR04 Ultrasonic","HC-SR501 PIR","MPU-6050 IMU","BMP280 Barometer","NEO-6M GPS","OV2640 Camera","Line Sensor (TCRT5000)","Encoder (Optical)","TCS34725 Color Sensor","VL53L0X ToF Sensor"],
+      comms:  ["HC-05 Bluetooth","HC-06 Bluetooth","NRF24L01","LoRa SX1278","SIM800L GSM","ESP-01 WiFi"],
     };
 
-    const presets = [
-      { label: "Line Follower", status: "PASS", brain: "Arduino Uno", actuator: "SG90 Micro Servo", power: "5V Power Bank" },
-      { label: "Drone Loadout", status: "FAIL", brain: "ESP32", actuator: "N20 Gear Motor", power: "3S LiPo (11.1V)" },
-      { label: "Micro Bot", status: "FAIL", brain: "Arduino Uno", actuator: "N20 Gear Motor", power: "1S LiPo (3.7V)" }
-    ];
-
-    const elements = {
-      brain: document.getElementById("brainSelect"),
-      actuator: document.getElementById("actuatorSelect"),
-      power: document.getElementById("powerSelect"),
-      runButton: document.getElementById("runButton"),
-      retryButton: document.getElementById("retryButton"),
-      presetGrid: document.getElementById("presetGrid"),
-      feedbackSection: document.getElementById("feedbackSection"),
-      feedbackGrid: document.getElementById("feedbackGrid"),
-      skeletonGrid: document.getElementById("skeletonGrid"),
-      errorBanner: document.getElementById("errorBanner"),
-      errorDetail: document.getElementById("errorDetail"),
-      weightMetric: document.getElementById("weightMetric"),
-      voltageMetric: document.getElementById("voltageMetric"),
-      statusMetric: document.getElementById("statusMetric"),
-      powerCard: document.getElementById("powerCard"),
-      powerStatusBadge: document.getElementById("powerStatusBadge"),
-      powerHeadline: document.getElementById("powerHeadline"),
-      powerReason: document.getElementById("powerReason"),
-      fixCard: document.getElementById("fixCard"),
-      fixBody: document.getElementById("fixBody"),
-      compatBody: document.getElementById("compatBody"),
-      weightBadge: document.getElementById("weightBadge"),
-      weightNote: document.getElementById("weightNote"),
+    // ── DOM refs ────────────────────────────────────────────────────────────
+    const $ = id => document.getElementById(id);
+    const E = {
+      brainSlot:    $("brain-slot"),
+      powerSlot:    $("power-slot"),
+      driverSlot:   $("driver-slot"),
+      driverBody:   $("driver-body"),
+      driverToggle: $("driver-toggle"),
+      driverLbl:    $("driver-toggle-lbl"),
+      motorsList:   $("motors-list"),
+      sensorsList:  $("sensors-list"),
+      commsList:    $("comms-list"),
+      runBtn:       $("run-btn"),
+      runLabel:     $("run-label"),
+      runSpinner:   $("run-spinner"),
+      emptyState:   $("empty-state"),
+      loadingState: $("loading-state"),
+      errorState:   $("error-state"),
+      errorDetail:  $("error-detail"),
+      retryBtn:     $("retry-btn"),
+      resultsContent:$("results-content"),
+      gaugeArc:     $("gauge-arc"),
+      gaugeScore:   $("gauge-score"),
+      verdictBadge: $("verdict-badge"),
+      verdictDot:   $("verdict-dot"),
+      verdictText:  $("verdict-text"),
+      highlightsList:$("highlights-list"),
+      cardsGrid:    $("cards-grid"),
+      motorsCount:  $("motors-count"),
+      sensorsCount: $("sensors-count"),
+      commsCount:   $("comms-count"),
     };
 
-    let lastSelection = null;
-    let lastChecks = null;
+    // ── Build component row ─────────────────────────────────────────────────
+    function makeRow(optGroup, defaultValue, removable = true) {
+      const row = document.createElement("div");
+      row.className = "comp-row";
 
-    function runChecks(brain, actuator, power) {
-      const errors = [];
-      const weight = +(brain.weight_kg + actuator.weight_kg + power.weight_kg).toFixed(3);
+      // Select wrapper
+      const wrap = document.createElement("div");
+      wrap.className = "comp-select-wrap";
 
-      if (power.voltage > actuator.max_v)
-        errors.push({ code: "CRITICAL_OVERVOLTAGE",
-          detail: `${power.voltage}V supply exceeds actuator max of ${actuator.max_v}V` });
+      const sel = document.createElement("select");
+      sel.className = "comp-select";
 
-      if (power.voltage < brain.min_vin)
-        errors.push({ code: "UNDERVOLTAGE_BROWNOUT",
-          detail: `${power.voltage}V supply is below brain minimum of ${brain.min_vin}V` });
+      // Options
+      const blank = document.createElement("option");
+      blank.value = "";
+      blank.textContent = "Select component…";
+      sel.appendChild(blank);
 
-      return { weight, errors, status: errors.length === 0 ? "PASS" : "FAIL" };
-    }
-
-    function optionList(select, group, placeholder) {
-      select.textContent = "";
-      const empty = document.createElement("option");
-      empty.value = "";
-      empty.textContent = placeholder;
-      select.append(empty);
-
-      Object.keys(DB[group]).forEach((name) => {
-        const option = document.createElement("option");
-        option.value = name;
-        option.textContent = name;
-        select.append(option);
+      (OPTS[optGroup] || []).forEach(name => {
+        const opt = document.createElement("option");
+        opt.value = name;
+        opt.textContent = name;
+        sel.appendChild(opt);
       });
-    }
 
-    function renderPresets() {
-      presets.forEach((preset) => {
-        const button = document.createElement("button");
-        button.className = "preset-btn";
-        button.type = "button";
-        button.dataset.preset = preset.label;
+      const customOpt = document.createElement("option");
+      customOpt.value = "__custom__";
+      customOpt.textContent = "── Custom ──";
+      sel.appendChild(customOpt);
 
-        const label = document.createElement("span");
-        label.textContent = preset.label;
-        label.className = "font-semibold";
+      // Arrow
+      const arrow = document.createElement("div");
+      arrow.className = "comp-select-arrow";
+      arrow.innerHTML = `<svg width="12" height="12" viewBox="0 0 24 24" fill="none"><path d="m6 9 6 6 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>`;
 
-        const state = document.createElement("span");
-        state.className = `badge badge-${preset.status.toLowerCase()}`;
-        state.textContent = preset.status;
+      wrap.append(sel, arrow);
 
-        const left = document.createElement("span");
-        left.className = "inline-flex items-center gap-3";
+      // Custom input
+      const custom = document.createElement("input");
+      custom.type = "text";
+      custom.className = "comp-custom";
+      custom.placeholder = "Type any component name…";
+      custom.setAttribute("hidden", "");
 
-        const dot = document.createElement("span");
-        dot.className = "dot";
-        dot.style.color = preset.status === "PASS" ? "var(--safe)" : "var(--critical)";
-        dot.style.background = preset.status === "PASS" ? "var(--safe)" : "var(--critical)";
+      // Toggle custom input
+      sel.addEventListener("change", () => {
+        if (sel.value === "__custom__") {
+          sel.hidden = true;
+          wrap.querySelector(".comp-select-arrow").hidden = true;
+          custom.removeAttribute("hidden");
+          custom.focus();
+        }
+      });
+      custom.addEventListener("keydown", e => {
+        if (e.key === "Escape") {
+          custom.setAttribute("hidden", "");
+          sel.hidden = false;
+          wrap.querySelector(".comp-select-arrow").hidden = false;
+          sel.value = "";
+        }
+      });
 
-        left.append(dot, label);
-        button.append(left, state);
-        button.addEventListener("click", () => {
-          elements.brain.value = preset.brain;
-          elements.actuator.value = preset.actuator;
-          elements.power.value = preset.power;
-          updateMetrics();
-          validateBuild();
+      row.append(wrap, custom);
+
+      // Remove button
+      if (removable) {
+        const rm = document.createElement("button");
+        rm.type = "button";
+        rm.className = "comp-remove";
+        rm.title = "Remove";
+        rm.innerHTML = `<svg width="13" height="13" viewBox="0 0 24 24" fill="none"><path d="M7 7l10 10M17 7 7 17" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>`;
+        rm.addEventListener("click", () => {
+          row.remove();
+          updateCounts();
         });
+        row.appendChild(rm);
+      }
 
-        elements.presetGrid.append(button);
+      // Set default value
+      if (defaultValue) sel.value = defaultValue;
+
+      return row;
+    }
+
+    function getRowValue(row) {
+      const sel = row.querySelector(".comp-select");
+      const custom = row.querySelector(".comp-custom");
+      if (sel.value === "__custom__" || sel.hidden) {
+        return custom.value.trim() || null;
+      }
+      return sel.value || null;
+    }
+
+    function updateCounts() {
+      const mc = E.motorsList.querySelectorAll(".comp-row").length;
+      E.motorsCount.textContent = mc;
+
+      const sc = E.sensorsList.querySelectorAll(".comp-row").length;
+      E.sensorsCount.textContent = sc;
+      E.sensorsCount.hidden = sc === 0;
+
+      const cc = E.commsList.querySelectorAll(".comp-row").length;
+      E.commsCount.textContent = cc;
+      E.commsCount.hidden = cc === 0;
+    }
+
+    function addRow(list, optGroup, defaultValue) {
+      const row = makeRow(optGroup, defaultValue, true);
+      // animate in
+      row.style.opacity = "0";
+      row.style.transform = "translateY(-8px)";
+      list.appendChild(row);
+      requestAnimationFrame(() => {
+        row.style.transition = "opacity 200ms, transform 200ms";
+        row.style.opacity = "1";
+        row.style.transform = "translateY(0)";
+      });
+      updateCounts();
+    }
+
+    // ── Driver toggle ───────────────────────────────────────────────────────
+    E.driverToggle.addEventListener("change", () => {
+      const on = E.driverToggle.checked;
+      E.driverBody.hidden = !on;
+      E.driverLbl.textContent = on ? "On" : "Off";
+    });
+
+    // ── Add buttons ─────────────────────────────────────────────────────────
+    $("add-motor-btn").addEventListener("click",  () => addRow(E.motorsList,   "motors",  ""));
+    $("add-sensor-btn").addEventListener("click", () => addRow(E.sensorsList,  "sensors", ""));
+    $("add-comm-btn").addEventListener("click",   () => addRow(E.commsList,    "comms",   ""));
+
+    // ── Init form with defaults ─────────────────────────────────────────────
+    function initForm() {
+      // Brain (single, no remove)
+      E.brainSlot.appendChild(makeRow("brains", "Arduino Uno", false));
+      // Power
+      E.powerSlot.appendChild(makeRow("power", "3S LiPo (11.1V)", false));
+      // Driver
+      E.driverSlot.appendChild(makeRow("motorDrivers", "L298N", false));
+      // Default 1 motor
+      addRow(E.motorsList, "motors", "N20 Gear Motor");
+    }
+
+    // ── Collect form data ───────────────────────────────────────────────────
+    function collectData() {
+      const brain = getRowValue(E.brainSlot.querySelector(".comp-row"));
+      const power = getRowValue(E.powerSlot.querySelector(".comp-row"));
+      const md    = E.driverToggle.checked
+                    ? getRowValue(E.driverSlot.querySelector(".comp-row"))
+                    : null;
+      const motors  = [...E.motorsList.querySelectorAll(".comp-row")]  .map(getRowValue).filter(Boolean);
+      const sensors = [...E.sensorsList.querySelectorAll(".comp-row")] .map(getRowValue).filter(Boolean);
+      const comms   = [...E.commsList.querySelectorAll(".comp-row")]   .map(getRowValue).filter(Boolean);
+      return { brain, power, motorDriver: md ?? "None", motors, sensors, comms };
+    }
+
+    // ── State machine ───────────────────────────────────────────────────────
+    function setState(state, detail = "") {
+      E.emptyState.hidden   = state !== "empty";
+      E.loadingState.hidden = state !== "loading";
+      E.errorState.hidden   = state !== "error";
+      E.resultsContent.hidden = state !== "results";
+
+      E.runBtn.disabled = state === "loading";
+      E.runBtn.classList.toggle("loading", state === "loading");
+      E.runLabel.textContent = state === "loading" ? "Checking…" : "Run BotCheck";
+      E.runSpinner.hidden = state !== "loading";
+
+      if (state === "error") E.errorDetail.textContent = detail || "Check your connection and environment variables.";
+    }
+
+    // ── Score gauge animation ───────────────────────────────────────────────
+    function animateGauge(score) {
+      const circ = 2 * Math.PI * 50; // 314.159
+      const color = score >= 80 ? "#10b981" : score >= 50 ? "#f59e0b" : "#ef4444";
+      E.gaugeArc.style.stroke = color;
+
+      let start = null;
+      const duration = 900;
+      const ease = t => 1 - Math.pow(1 - t, 3);
+
+      function step(ts) {
+        if (!start) start = ts;
+        const p = ease(Math.min((ts - start) / duration, 1));
+        const current = Math.round(p * score);
+        E.gaugeScore.textContent = current;
+        E.gaugeArc.style.strokeDashoffset = circ * (1 - p * score / 100);
+        if (p < 1) requestAnimationFrame(step);
+      }
+      requestAnimationFrame(step);
+    }
+
+    // ── Verdict ─────────────────────────────────────────────────────────────
+    const VERDICT_MAP = {
+      READY_TO_BUILD: { cls: "verdict-ready",  dot: "#10b981", label: "READY TO BUILD"   },
+      NEEDS_REVIEW:   { cls: "verdict-review",  dot: "#f59e0b", label: "NEEDS REVIEW"     },
+      NOT_RECOMMENDED:{ cls: "verdict-bad",     dot: "#ef4444", label: "NOT RECOMMENDED"  },
+    };
+    function renderVerdict(verdict) {
+      const v = VERDICT_MAP[verdict] ?? VERDICT_MAP.NEEDS_REVIEW;
+      E.verdictBadge.className = `verdict-badge ${v.cls}`;
+      E.verdictDot.style.background = v.dot;
+      E.verdictText.textContent = v.label;
+    }
+
+    // ── Highlights ──────────────────────────────────────────────────────────
+    function renderHighlights(items) {
+      E.highlightsList.innerHTML = "";
+      (items || []).forEach(text => {
+        const hasIssue = /overvoltage|mismatch|shortage|exceed|critical|warning|insufficient|too high|too low/i.test(text);
+        const color  = hasIssue ? "#fcd34d" : "#6ee7b7";
+        const icon   = hasIssue ? "⚠️" : "✅";
+        const el = document.createElement("div");
+        el.className = "highlight-item";
+        el.innerHTML = `<span class="hl-icon">${icon}</span><span style="color:${color}">${text}</span>`;
+        E.highlightsList.appendChild(el);
       });
     }
 
-    function getSelection() {
-      if (!elements.brain.value || !elements.actuator.value || !elements.power.value) {
-        return null;
+    // ── Status badge helper ─────────────────────────────────────────────────
+    function statusBadge(text, cls) {
+      const s = document.createElement("span");
+      s.className = `status-badge ${cls}`;
+      s.textContent = text;
+      return s;
+    }
+
+    // ── Card builder ────────────────────────────────────────────────────────
+    function makeCard({ label, dotColor, badge, headline, body, extra, fullWidth, cardClass, delay }) {
+      const card = document.createElement("article");
+      card.className = `result-card ${fullWidth ? "full-width" : ""} ${cardClass || ""}`;
+      card.style.animationDelay = `${delay || 0}ms`;
+
+      const header = document.createElement("div");
+      header.className = "card-header";
+
+      const lbl = document.createElement("div");
+      lbl.className = "card-label";
+      lbl.innerHTML = `<span class="card-label-dot" style="background:${dotColor}"></span>${label}`;
+
+      header.appendChild(lbl);
+      if (badge) header.appendChild(badge);
+      card.appendChild(header);
+
+      if (headline) {
+        const h = document.createElement("div");
+        h.className = "card-headline";
+        h.textContent = headline;
+        card.appendChild(h);
       }
-
-      return {
-        brainName: elements.brain.value,
-        actuatorName: elements.actuator.value,
-        powerName: elements.power.value,
-        brain: DB.brains[elements.brain.value],
-        actuator: DB.actuators[elements.actuator.value],
-        power: DB.power[elements.power.value],
-      };
-    }
-
-    function updateMetrics() {
-      const selection = getSelection();
-      if (!selection) {
-        lastSelection = null;
-        lastChecks = null;
-        elements.weightMetric.textContent = "--";
-        elements.voltageMetric.textContent = "--";
-        renderStatusMetric("--");
-        elements.feedbackSection.hidden = true;
-        return null;
+      if (body) {
+        const b = document.createElement("div");
+        b.className = "card-body";
+        b.innerHTML = body;
+        card.appendChild(b);
       }
-
-      const checks = runChecks(selection.brain, selection.actuator, selection.power);
-      lastSelection = selection;
-      lastChecks = checks;
-      elements.weightMetric.textContent = `${checks.weight.toFixed(3)} kg`;
-      elements.voltageMetric.textContent = `${selection.power.voltage.toFixed(1)}V`;
-      renderStatusMetric(checks.status);
-      return checks;
+      if (extra) card.appendChild(extra);
+      return card;
     }
 
-    function renderStatusMetric(status) {
-      elements.statusMetric.textContent = "";
-      const badge = makeBadge(status, status);
-      elements.statusMetric.append(badge);
+    // ── Render results ──────────────────────────────────────────────────────
+    function renderResults(r) {
+      E.cardsGrid.innerHTML = "";
+      const { power, motorDriver, compatibility, sensors, weight, fix, summary } = r;
+
+      animateGauge(summary.score ?? 0);
+      renderVerdict(summary.verdict);
+      renderHighlights(summary.highlights);
+
+      // 1. Power card
+      const pwStatus = (power.status || "WARNING").toUpperCase();
+      const pwCls = pwStatus === "SAFE" ? "sb-safe" : pwStatus === "CRITICAL" ? "sb-bad" : "sb-warn";
+      const pwCardCls = pwStatus === "SAFE" ? "card-ok" : pwStatus === "CRITICAL" ? "card-bad" : "card-warn";
+      const pwExtra = document.createElement("div");
+      pwExtra.className = "card-body";
+      pwExtra.innerHTML = `<p>${power.reason || ""}</p>`;
+      E.cardsGrid.appendChild(makeCard({
+        label: "Power Chain",
+        dotColor: pwStatus === "SAFE" ? "#10b981" : pwStatus === "CRITICAL" ? "#ef4444" : "#f59e0b",
+        badge: statusBadge(pwStatus, pwCls),
+        headline: power.headline,
+        extra: pwExtra,
+        cardClass: pwCardCls,
+        delay: 100,
+      }));
+
+      // 2. Motor Driver card
+      const mdPresent  = motorDriver.present;
+      const mdCompat   = motorDriver.compatible;
+      const mdBadgeCls = !mdPresent ? "sb-warn" : mdCompat === true ? "sb-safe" : mdCompat === false ? "sb-bad" : "sb-warn";
+      const mdBadgeTxt = !mdPresent ? "NONE" : mdCompat === true ? "COMPATIBLE" : mdCompat === false ? "INCOMPATIBLE" : "UNKNOWN";
+      const mdCardCls  = !mdPresent ? "card-warn" : mdCompat === true ? "card-ok" : "card-bad";
+      const mdBody = `<p>${motorDriver.note || ""}</p>${motorDriver.channel_note ? `<p style="margin-top:6px;color:var(--text-3);font-size:0.77rem">${motorDriver.channel_note}</p>` : ""}`;
+      E.cardsGrid.appendChild(makeCard({
+        label: "Motor Driver",
+        dotColor: !mdPresent ? "#f59e0b" : mdCompat ? "#10b981" : "#ef4444",
+        badge: statusBadge(mdBadgeTxt, mdBadgeCls),
+        body: mdBody,
+        cardClass: mdCardCls,
+        delay: 200,
+      }));
+
+      // 3. Compatibility card
+      const lgMatch = (compatibility.logic_match || "MISMATCH").toUpperCase();
+      const lgBadge = lgMatch === "OK" ? "sb-ok" : lgMatch === "NEEDS_LEVEL_SHIFTER" ? "sb-shift" : "sb-mismatch";
+      const lgLabel = lgMatch === "NEEDS_LEVEL_SHIFTER" ? "LEVEL SHIFT" : lgMatch;
+      const compatExtra = document.createElement("div");
+      compatExtra.className = "card-body";
+      const row1 = document.createElement("div");
+      row1.className = "compat-row";
+      row1.innerHTML = `<div class="compat-label">Logic</div><div class="compat-detail">${compatibility.logic_note || ""}</div>`;
+      const row2 = document.createElement("div");
+      row2.className = "compat-row";
+      row2.innerHTML = `<div class="compat-label">Current</div><div class="compat-detail">${compatibility.current_note || ""}</div>`;
+      compatExtra.append(row1, row2);
+      E.cardsGrid.appendChild(makeCard({
+        label: "Compatibility",
+        dotColor: lgMatch === "OK" ? "#10b981" : lgMatch === "NEEDS_LEVEL_SHIFTER" ? "#f59e0b" : "#ef4444",
+        badge: statusBadge(lgLabel, lgBadge),
+        extra: compatExtra,
+        cardClass: lgMatch === "OK" && compatibility.current_ok ? "card-ok" : "card-warn",
+        delay: 300,
+      }));
+
+      // 4. Sensors card
+      const sOk = sensors.all_ok;
+      const sensorsExtra = document.createElement("div");
+      sensorsExtra.className = "card-body";
+      const sNote = document.createElement("p");
+      sNote.textContent = sensors.note || "";
+      sensorsExtra.appendChild(sNote);
+      if (sensors.issues && sensors.issues.length > 0) {
+        const issueList = document.createElement("div");
+        issueList.className = "sensor-issues";
+        sensors.issues.forEach(issue => {
+          const item = document.createElement("div");
+          item.className = "sensor-issue";
+          item.innerHTML = `<span class="sensor-issue-dot"></span>${issue}`;
+          issueList.appendChild(item);
+        });
+        sensorsExtra.appendChild(issueList);
+      }
+      E.cardsGrid.appendChild(makeCard({
+        label: "Sensors",
+        dotColor: sOk ? "#10b981" : "#f59e0b",
+        badge: statusBadge(sOk ? "ALL OK" : "REVIEW", sOk ? "sb-safe" : "sb-warn"),
+        extra: sensorsExtra,
+        cardClass: sOk ? "card-ok" : "card-warn",
+        delay: 400,
+      }));
+
+      // 5. Weight card
+      const wtRating = (weight.rating || "BALANCED").toUpperCase();
+      const wtColors = { ULTRALIGHT:"#06b6d4", LIGHT:"#10b981", BALANCED:"#6366f1", HEAVY:"#f59e0b", VERY_HEAVY:"#ef4444" };
+      const wtPct = { ULTRALIGHT: 10, LIGHT: 30, BALANCED: 55, HEAVY: 78, VERY_HEAVY: 95 };
+      const wtColor = wtColors[wtRating] || "#6366f1";
+      const wtFill  = wtPct[wtRating]   || 50;
+      const weightExtra = document.createElement("div");
+      weightExtra.className = "weight-bar-wrap";
+      weightExtra.innerHTML = `
+        <div class="weight-bar-track">
+          <div class="weight-bar-fill" style="width:0%;background:${wtColor}" data-target="${wtFill}"></div>
+        </div>
+        <div class="weight-labels"><span>Ultralight</span><span>~${weight.estimated_kg ? weight.estimated_kg.toFixed(2) + " kg" : "?"}</span><span>Very Heavy</span></div>
+      `;
+      E.cardsGrid.appendChild(makeCard({
+        label: "Weight",
+        dotColor: wtColor,
+        badge: statusBadge(wtRating.replace("_"," "), "sb-ok"),
+        body: `<p>${weight.note || ""}</p>`,
+        extra: weightExtra,
+        cardClass: "",
+        delay: 500,
+      }));
+      // Animate weight bar after render
+      setTimeout(() => {
+        const fill = weightExtra.querySelector(".weight-bar-fill");
+        if (fill) fill.style.width = fill.dataset.target + "%";
+      }, 600);
+
+      // 6. Fix card (full-width if needed)
+      const fixNeeded = fix.needed;
+      const fixExtra = document.createElement("div");
+      if (fixNeeded && fix.part) {
+        const chip = document.createElement("div");
+        chip.className = "part-chip";
+        chip.innerHTML = `<svg width="12" height="12" viewBox="0 0 24 24" fill="none"><path d="m14.7 6.3 3-3a4.8 4.8 0 0 1-6.2 6.2l-7.2 7.2a2.1 2.1 0 1 0 3 3l7.2-7.2a4.8 4.8 0 0 1 6.2-6.2l-3 3-3-3Z" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>${fix.part}`;
+        if (fix.spec) {
+          const spec = document.createElement("p");
+          spec.style.cssText = "font-size:0.75rem;color:var(--text-3);margin-top:4px";
+          spec.textContent = `Spec: ${fix.spec}`;
+          fixExtra.appendChild(chip);
+          fixExtra.appendChild(spec);
+        } else {
+          fixExtra.appendChild(chip);
+        }
+        if (fix.why) {
+          const why = document.createElement("p");
+          why.style.cssText = "font-size:0.8rem;color:var(--text-2);margin-top:8px";
+          why.textContent = fix.why;
+          fixExtra.appendChild(why);
+        }
+      } else {
+        fixExtra.innerHTML = `<p style="color:var(--green);font-size:0.82rem;font-weight:600">✅ No fix required — build is electrically compatible.</p>`;
+      }
+      E.cardsGrid.appendChild(makeCard({
+        label: "Recommended Fix",
+        dotColor: fixNeeded ? "#ef4444" : "#10b981",
+        badge: statusBadge(fixNeeded ? "NEEDED" : "NONE", fixNeeded ? "sb-bad" : "sb-safe"),
+        fullWidth: true,
+        extra: fixExtra,
+        cardClass: fixNeeded ? "card-bad" : "card-ok",
+        delay: 600,
+      }));
     }
 
-    function makeBadge(text, type) {
-      const badge = document.createElement("span");
-      badge.className = `badge badge-${String(type).toLowerCase()}`;
-      badge.textContent = text;
-      return badge;
-    }
+    // ── Main check ──────────────────────────────────────────────────────────
+    let lastData = null;
 
-    async function validateBuild() {
-      const checks = updateMetrics();
-      if (!lastSelection || !checks) {
+    async function runCheck() {
+      const data = collectData();
+      if (!data.brain || !data.power || data.motors.length === 0) {
+        alert("Please fill in Brain, Power, and at least one Motor before running BotCheck.");
         return;
       }
-
+      lastData = data;
       setState("loading");
-
       try {
-        const response = await fetch("/api/validate", {
+        const res = await fetch("/api/validate", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            brainName: lastSelection.brainName,
-            actuatorName: lastSelection.actuatorName,
-            powerName: lastSelection.powerName
-          })
+          body: JSON.stringify(data),
         });
-
-        const data = await response.json();
-        if (!response.ok) throw new Error(readApiError(data));
-        renderBlocks(data);
-        setState("ready");
-      } catch (error) {
-        console.error(error);
-        setState("error", error.message);
+        const json = await res.json();
+        if (!res.ok) throw new Error(json.error || "API request failed");
+        setState("results");
+        renderResults(json);
+      } catch (err) {
+        setState("error", err.message);
       }
     }
 
-    function setState(state, detail = "") {
-      const loading = state === "loading";
-      elements.feedbackSection.hidden = false;
-      elements.skeletonGrid.hidden = !loading;
-      elements.feedbackGrid.hidden = state !== "ready";
-      elements.errorBanner.style.display = state === "error" ? "flex" : "none";
-      elements.errorDetail.textContent = detail || "Check the serverless function and environment variables.";
-      elements.runButton.disabled = loading;
-      elements.runButton.classList.toggle("loading", loading);
-      elements.feedbackSection.setAttribute("aria-busy", String(loading));
-      elements.runButton.querySelector(".button-label").textContent = loading ? "Checking..." : "Run BotCheck";
-    }
+    E.runBtn.addEventListener("click",  runCheck);
+    E.retryBtn.addEventListener("click", runCheck);
 
-    function readApiError(data) {
-      if (typeof data?.error === "string") return data.error;
-      if (data?.error?.message) return data.error.message;
-      return "API request failed";
-    }
-
-    function renderBlocks(result) {
-      renderPower(result.power || {});
-      renderFix(result.fix || {});
-      renderCompatibility(result.compatibility || {});
-      renderWeight(result.weight || {});
-    }
-
-    function renderPower(power) {
-      const status = safeEnum(power.status, ["SAFE", "WARNING", "CRITICAL"], "WARNING");
-      elements.powerCard.className = `feedback-card ${status === "CRITICAL" ? "critical" : ""}`;
-      elements.powerStatusBadge.textContent = "";
-      elements.powerStatusBadge.append(makeBadge(status, status));
-      elements.powerHeadline.textContent = limitWords(power.headline || "Power check needs review", 10);
-
-      elements.powerReason.textContent = "";
-      splitTwoSentences(power.reason || "The power state could not be fully analyzed. Review the deterministic metrics before powering the build.").forEach((sentence) => {
-        const p = document.createElement("p");
-        p.textContent = sentence;
-        elements.powerReason.append(p);
-      });
-    }
-
-    function renderFix(fix) {
-      elements.fixBody.textContent = "";
-      elements.fixCard.className = "feedback-card";
-
-      if (fix.needed === false) {
-        elements.fixCard.classList.add("safe");
-        const p = document.createElement("p");
-        p.textContent = "No fix required. Build is electrically safe.";
-        elements.fixBody.append(p);
-        return;
-      }
-
-      const chip = document.createElement("code");
-      chip.className = "part-chip";
-      chip.textContent = fix.part || "Review required";
-
-      const spec = document.createElement("p");
-      spec.className = "spec-line";
-      spec.textContent = fix.spec ? `Spec: ${fix.spec}` : "Spec: Review voltage and current requirements.";
-
-      const why = document.createElement("p");
-      why.textContent = fix.why || "This component should bring the loadout back inside safe electrical limits.";
-
-      elements.fixBody.append(chip, spec, why);
-    }
-
-    function renderCompatibility(compatibility) {
-      elements.compatBody.textContent = "";
-
-      elements.compatBody.append(
-        makeLogicRow(compatibility.logic_match || "MISMATCH", compatibility.logic_note || "Logic compatibility was not confirmed."),
-        makeCurrentRow(compatibility.current_ok === true, compatibility.current_note || "Current capacity was not confirmed.")
-      );
-    }
-
-    function makeLogicRow(status, note) {
-      const wrapper = document.createElement("div");
-
-      const row = document.createElement("div");
-      row.className = "compat-row";
-
-      const title = document.createElement("strong");
-      title.textContent = "Logic";
-
-      const badge = makeBadge(status, status);
-
-      const spacer = document.createElement("span");
-      spacer.setAttribute("aria-hidden", "true");
-
-      const p = document.createElement("p");
-      p.textContent = note;
-
-      row.append(title, badge, spacer);
-      wrapper.append(row, p);
-      return wrapper;
-    }
-
-    function makeCurrentRow(ok, note) {
-      const wrapper = document.createElement("div");
-
-      const row = document.createElement("div");
-      row.className = "compat-row";
-
-      const title = document.createElement("strong");
-      title.textContent = "Current";
-
-      const badge = document.createElement("span");
-      badge.className = `badge badge-${ok ? "true" : "false"}`;
-      badge.setAttribute("aria-label", ok ? "Current OK" : "Current failed");
-      badge.append(makeCurrentIcon(ok));
-
-      const spacer = document.createElement("span");
-      spacer.setAttribute("aria-hidden", "true");
-
-      const p = document.createElement("p");
-      p.textContent = note;
-
-      row.append(title, badge, spacer);
-      wrapper.append(row, p);
-      return wrapper;
-    }
-
-    function makeCurrentIcon(ok) {
-      const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
-      svg.setAttribute("viewBox", "0 0 24 24");
-      svg.setAttribute("fill", "none");
-      svg.setAttribute("aria-hidden", "true");
-
-      const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
-      path.setAttribute("d", ok ? "m5 12 4 4L19 6" : "M7 7l10 10M17 7 7 17");
-      path.setAttribute("stroke", "currentColor");
-      path.setAttribute("stroke-width", "2.4");
-      path.setAttribute("stroke-linecap", "round");
-      if (ok) path.setAttribute("stroke-linejoin", "round");
-      svg.append(path);
-      return svg;
-    }
-
-    function renderWeight(weight) {
-      const rating = safeEnum(weight.rating, ["ULTRALIGHT", "LIGHT", "BALANCED", "HEAVY"], "BALANCED");
-      elements.weightBadge.textContent = "";
-      elements.weightBadge.append(makeBadge(rating, rating));
-      elements.weightNote.textContent = weight.note || "Weight impact could not be evaluated.";
-    }
-
-    function splitTwoSentences(value) {
-      const sentences = String(value).trim().match(/.+?(?:[.!?](?=\s+[A-Z]|$)|$)/g) || [String(value)];
-      const cleaned = sentences.map((sentence) => sentence.trim()).filter(Boolean);
-      if (cleaned.length >= 2) return cleaned.slice(0, 2);
-      return [cleaned[0] || "Power status is unavailable.", "Review the deterministic metrics before powering the build."];
-    }
-
-    function limitWords(value, maxWords) {
-      const words = String(value).trim().split(/\s+/).filter(Boolean);
-      return words.slice(0, maxWords).join(" ");
-    }
-
-    function safeEnum(value, allowed, fallback) {
-      return allowed.includes(value) ? value : fallback;
-    }
-
-    function init() {
-      optionList(elements.brain, "brains", "Select brain");
-      optionList(elements.actuator, "actuators", "Select actuator");
-      optionList(elements.power, "power", "Select power");
-      renderPresets();
-      updateMetrics();
-
-      [elements.brain, elements.actuator, elements.power].forEach((select) => {
-        select.addEventListener("change", () => {
-          updateMetrics();
-          elements.feedbackSection.hidden = true;
-        });
-      });
-
-      elements.runButton.addEventListener("click", validateBuild);
-      elements.retryButton.addEventListener("click", validateBuild);
-    }
-
-    init();
+    // ── Boot ────────────────────────────────────────────────────────────────
+    initForm();
+    setState("empty");
   </script>
 </body>
 </html>
