@@ -31,8 +31,11 @@
       min-height: 100vh;
       margin: 0;
       background:
+        linear-gradient(rgba(255, 255, 255, 0.018) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255, 255, 255, 0.018) 1px, transparent 1px),
         linear-gradient(180deg, rgba(99, 102, 241, 0.12) 0%, rgba(8, 8, 16, 0) 280px),
         var(--bg);
+      background-size: 38px 38px, 38px 38px, auto, auto;
       color: var(--text);
       font-family: "Inter", system-ui, sans-serif;
     }
@@ -59,10 +62,24 @@
       border: 1px solid var(--border);
       border-radius: 8px;
       box-shadow: 0 18px 60px rgba(0, 0, 0, 0.28);
+      backdrop-filter: blur(10px);
     }
 
     .panel {
       padding: 22px;
+    }
+
+    .panel-accent {
+      position: relative;
+      overflow: hidden;
+    }
+
+    .panel-accent::before {
+      content: "";
+      position: absolute;
+      inset: 0 0 auto;
+      height: 2px;
+      background: linear-gradient(90deg, var(--accent), transparent 78%);
     }
 
     .header-panel {
@@ -199,6 +216,20 @@
     .run-btn:disabled {
       cursor: not-allowed;
       opacity: 0.62;
+    }
+
+    .button-spinner {
+      display: none;
+      width: 15px;
+      height: 15px;
+      border: 2px solid rgba(255, 255, 255, 0.38);
+      border-top-color: #fff;
+      border-radius: 999px;
+      animation: spin 760ms linear infinite;
+    }
+
+    .run-btn.loading .button-spinner {
+      display: inline-block;
     }
 
     .metrics-grid {
@@ -369,6 +400,12 @@
       color: #fecaca;
     }
 
+    .state-banner p {
+      margin: 4px 0 0;
+      color: #fca5a5;
+      font-size: 0.88rem;
+    }
+
     .feedback-section[hidden],
     .feedback-grid[hidden],
     .skeleton-grid[hidden] {
@@ -416,6 +453,10 @@
       100% { background-position: 0% 50%; }
     }
 
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
     @media (max-width: 800px) {
       .shell {
         width: min(100% - 24px, 1120px);
@@ -443,7 +484,7 @@
 </head>
 <body>
   <main class="shell">
-    <section class="panel header-panel">
+    <section class="panel panel-accent header-panel">
       <div class="icon-box" aria-hidden="true">
         <svg width="28" height="28" viewBox="0 0 24 24" fill="none" role="img">
           <path d="M6 4v5M18 4v5M4 9h16M7 9v11M17 9v11M7 15h10" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/>
@@ -480,7 +521,8 @@
       </div>
       <div class="run-row">
         <button class="run-btn" id="runButton" type="button">
-          <span>Run BotCheck</span>
+          <span class="button-spinner" aria-hidden="true"></span>
+          <span class="button-label">Run BotCheck</span>
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
             <path d="M5 12h14M13 6l6 6-6 6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
           </svg>
@@ -521,7 +563,10 @@
     <section class="feedback-section panel mt-5" id="feedbackSection" hidden>
       <div class="section-label">AI Feedback Blocks</div>
       <div class="state-banner" id="errorBanner">
-        <strong>BotCheck failed to connect. Retry.</strong>
+        <div>
+          <strong>BotCheck failed to connect. Retry.</strong>
+          <p id="errorDetail">Check the serverless function and environment variables.</p>
+        </div>
         <button class="retry-btn" id="retryButton" type="button">Retry</button>
       </div>
       <div class="skeleton-grid" id="skeletonGrid" hidden>
@@ -605,35 +650,6 @@
       }
     };
 
-    const SYSTEM_PROMPT = `You are a robotics hardware validation engine called BotCheck.
-You receive a component loadout and pre-computed error flags.
-You must return ONLY a valid JSON object. No markdown. No explanation. No preamble.
-
-Return exactly this shape — every field is required:
-{
-  "power": {
-    "status": "SAFE" | "WARNING" | "CRITICAL",
-    "headline": "Max 10 words. What is the power situation.",
-    "reason": "Exactly 2 sentences. Why this status. What the numbers mean."
-  },
-  "fix": {
-    "needed": true | false,
-    "part": "Exact component name, e.g. LM2596 Step-Down Converter, or null",
-    "spec": "One sentence. The specific voltage/current spec the fix must meet, or null.",
-    "why": "One sentence. Why this part solves the problem, or null."
-  },
-  "compatibility": {
-    "logic_match": "OK" | "MISMATCH",
-    "logic_note": "One sentence. Whether brain logic voltage matches actuator signal requirements.",
-    "current_ok": true | false,
-    "current_note": "One sentence. Whether the power source can handle the actuator's current draw."
-  },
-  "weight": {
-    "rating": "ULTRALIGHT" | "LIGHT" | "BALANCED" | "HEAVY",
-    "note": "One sentence. What this weight means for the robot's use case."
-  }
-}`;
-
     const presets = [
       { label: "Line Follower", status: "PASS", brain: "Arduino Uno", actuator: "SG90 Micro Servo", power: "5V Power Bank" },
       { label: "Drone Loadout", status: "FAIL", brain: "ESP32", actuator: "N20 Gear Motor", power: "3S LiPo (11.1V)" },
@@ -651,6 +667,7 @@ Return exactly this shape — every field is required:
       feedbackGrid: document.getElementById("feedbackGrid"),
       skeletonGrid: document.getElementById("skeletonGrid"),
       errorBanner: document.getElementById("errorBanner"),
+      errorDetail: document.getElementById("errorDetail"),
       weightMetric: document.getElementById("weightMetric"),
       voltageMetric: document.getElementById("voltageMetric"),
       statusMetric: document.getElementById("statusMetric"),
@@ -784,18 +801,6 @@ Return exactly this shape — every field is required:
       return badge;
     }
 
-    function buildUserMessage(selection, checks) {
-      const errors = checks.errors.length
-        ? checks.errors.map((error) => `${error.code}: ${error.detail}`).join("; ")
-        : "NONE";
-
-      return `Brain: ${selection.brainName} — logic ${selection.brain.logic_v}V, VIN range ${selection.brain.min_vin}–${selection.brain.max_vin}V, ${selection.brain.weight_kg}kg
-Actuator: ${selection.actuatorName} — operating ${selection.actuator.op_v}V, max ${selection.actuator.max_v}V, ${selection.actuator.current_a}A, ${selection.actuator.weight_kg}kg
-Power: ${selection.powerName} — ${selection.power.voltage}V, ${selection.power.weight_kg}kg
-Total weight: ${checks.weight}kg
-Pre-computed errors: ${errors}`;
-    }
-
     async function validateBuild() {
       const checks = updateMetrics();
       if (!lastSelection || !checks) {
@@ -809,38 +814,39 @@ Pre-computed errors: ${errors}`;
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            model: "gpt-4o-mini",
-            response_format: { type: "json_object" },
-            temperature: 0.2,
-            messages: [
-              { role: "system", content: SYSTEM_PROMPT },
-              { role: "user", content: buildUserMessage(lastSelection, checks) }
-            ]
+            brainName: lastSelection.brainName,
+            actuatorName: lastSelection.actuatorName,
+            powerName: lastSelection.powerName
           })
         });
 
         const data = await response.json();
-        if (!response.ok) throw new Error(data.error?.message || "API request failed");
-
-        const content = data.choices?.[0]?.message?.content;
-        if (!content) throw new Error("No BotCheck result returned");
-
-        renderBlocks(JSON.parse(content));
+        if (!response.ok) throw new Error(readApiError(data));
+        renderBlocks(data);
         setState("ready");
       } catch (error) {
         console.error(error);
-        setState("error");
+        setState("error", error.message);
       }
     }
 
-    function setState(state) {
+    function setState(state, detail = "") {
       const loading = state === "loading";
       elements.feedbackSection.hidden = false;
       elements.skeletonGrid.hidden = !loading;
       elements.feedbackGrid.hidden = state !== "ready";
       elements.errorBanner.style.display = state === "error" ? "flex" : "none";
+      elements.errorDetail.textContent = detail || "Check the serverless function and environment variables.";
       elements.runButton.disabled = loading;
-      elements.runButton.querySelector("span").textContent = loading ? "Checking..." : "Run BotCheck";
+      elements.runButton.classList.toggle("loading", loading);
+      elements.feedbackSection.setAttribute("aria-busy", String(loading));
+      elements.runButton.querySelector(".button-label").textContent = loading ? "Checking..." : "Run BotCheck";
+    }
+
+    function readApiError(data) {
+      if (typeof data?.error === "string") return data.error;
+      if (data?.error?.message) return data.error.message;
+      return "API request failed";
     }
 
     function renderBlocks(result) {
