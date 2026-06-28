@@ -1,922 +1,466 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>BotCheck — AI Robotics Hardware Validator</title>
-  <meta name="description" content="Tell BotCheck what you're building and list your components — get AI-powered compatibility analysis that flags critical issues, warnings, and improvements.">
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <title>BotCheck - Hardware Validator</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
   <style>
     :root {
-      --bg:#07080d; --surface:#0d0f1a; --surface-2:#111320; --surface-3:#161826;
-      --border:rgba(255,255,255,0.07); --border-2:rgba(255,255,255,0.12);
-      --text:#e2e8f0; --text-2:#94a3b8; --text-3:#475569;
-      --accent:#6366f1; --accent-soft:rgba(99,102,241,0.15); --accent-2:rgba(99,102,241,0.08);
-      --green:#10b981; --green-soft:rgba(16,185,129,0.12);
-      --amber:#f59e0b; --amber-soft:rgba(245,158,11,0.12);
-      --red:#ef4444; --red-soft:rgba(239,68,68,0.12);
-      --blue:#3b82f6; --blue-soft:rgba(59,130,246,0.12);
-      --r:12px; --r-sm:8px;
+      --bg: #ffffff;
+      --fg: #171717;
+      --fg-muted: #666666;
+      --border: #eaeaea;
+      --border-hover: #999999;
+      --bg-muted: #fafafa;
+      --accent: #000000;
+      --accent-fg: #ffffff;
+      --radius: 6px;
+      --shadow: 0 4px 14px 0 rgba(0,0,0,0.1);
+      
+      --error: #e00;
+      --error-bg: #fff0f0;
+      --warn: #f5a623;
+      --warn-bg: #fffcf0;
+      --info: #0070f3;
+      --info-bg: #f0f7ff;
+      --success: #0070f3; 
     }
-    *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
-    body{min-height:100vh;background:var(--bg);color:var(--text);font-family:"Inter",system-ui,sans-serif;font-size:14px;line-height:1.6;overflow-x:hidden}
-    button,input,textarea{font:inherit} button{cursor:pointer} h1,h2,h3,h4{line-height:1.2} svg{display:block;flex-shrink:0}
-    .mono{font-family:"JetBrains Mono",monospace}
-
-    /* Header */
-    .site-header{position:sticky;top:0;z-index:50;background:rgba(7,8,13,0.92);border-bottom:1px solid var(--border);backdrop-filter:blur(20px)}
-    .header-inner{display:flex;align-items:center;justify-content:space-between;gap:16px;max-width:1440px;margin:0 auto;padding:0 24px;height:60px}
-    .logo{display:flex;align-items:center;gap:12px}
-    .logo-icon{display:grid;place-items:center;width:36px;height:36px;background:var(--accent-soft);border:1px solid rgba(99,102,241,0.4);border-radius:var(--r-sm);color:var(--accent)}
-    .logo h1{font-family:"JetBrains Mono",monospace;font-size:1.1rem;font-weight:700;letter-spacing:-0.02em}
-    .logo p{font-size:0.72rem;color:var(--text-2);margin-top:1px}
-    .header-right{display:flex;align-items:center;gap:8px}
-    .pill{display:inline-flex;align-items:center;gap:5px;padding:4px 10px;border-radius:999px;font-size:0.72rem;font-weight:600;border:1px solid}
-    .pill-accent{background:var(--accent-soft);border-color:rgba(99,102,241,0.35);color:#a5b4fc}
-    .pill-green{background:var(--green-soft);border-color:rgba(16,185,129,0.35);color:#6ee7b7}
-
+    
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: 'Inter', -apple-system, sans-serif; background: var(--bg); color: var(--fg); line-height: 1.5; font-size: 14px; }
+    
     /* Layout */
-    .app{display:grid;grid-template-columns:420px 1fr;height:calc(100vh - 60px);max-width:1440px;margin:0 auto}
-    .form-panel{border-right:1px solid var(--border);overflow-y:auto;overflow-x:hidden;display:flex;flex-direction:column}
-    .form-panel::-webkit-scrollbar{width:4px}
-    .form-panel::-webkit-scrollbar-thumb{background:var(--border-2);border-radius:2px}
-
-    /* Step indicator */
-    .step-indicator{display:flex;align-items:center;padding:16px 20px 0;gap:0}
-    .step-dot{display:flex;align-items:center;gap:8px;font-size:0.75rem;font-weight:600;color:var(--text-3);cursor:pointer;transition:color 200ms;user-select:none}
-    .step-dot.active{color:var(--text)} .step-dot.done{color:var(--green)}
-    .step-num{width:22px;height:22px;display:grid;place-items:center;border-radius:999px;font-size:0.7rem;font-weight:800;background:var(--surface-2);border:1px solid var(--border-2);font-family:"JetBrains Mono",monospace;transition:background 200ms,border-color 200ms;flex-shrink:0}
-    .step-dot.active .step-num{background:var(--accent-soft);border-color:rgba(99,102,241,0.5);color:#a5b4fc}
-    .step-dot.done .step-num{background:var(--green-soft);border-color:rgba(16,185,129,0.4);color:#6ee7b7}
-    .step-connector{flex:1;height:1px;background:var(--border);margin:0 10px;transition:background 300ms}
-    .step-connector.done{background:rgba(16,185,129,0.3)}
-
-    /* Step panels */
-    .step-panel{display:none;flex-direction:column;flex:1}
-    .step-panel.active{display:flex}
-
-    /* Step 1 */
-    .ctx-panel{padding:20px;flex:1;display:flex;flex-direction:column}
-    .ctx-intro{font-size:1.05rem;font-weight:800;color:var(--text);margin-bottom:4px}
-    .ctx-sub{font-size:0.82rem;color:var(--text-2);margin-bottom:22px;line-height:1.5}
-    .field-label{font-size:0.7rem;font-weight:700;text-transform:uppercase;letter-spacing:0.07em;color:var(--text-3);margin-bottom:10px}
-    .robot-types{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:22px}
-    .robot-type-card{display:flex;align-items:center;gap:10px;padding:12px 13px;background:var(--surface);border:1.5px solid var(--border);border-radius:var(--r);cursor:pointer;text-align:left;transition:border-color 150ms,background 150ms}
-    .robot-type-card:hover{border-color:var(--border-2);background:var(--surface-2)}
-    .robot-type-card.selected{border-color:var(--accent);background:var(--accent-2)}
-    .rt-icon{font-size:1.35rem;flex-shrink:0}
-    .rt-name{font-size:0.82rem;font-weight:600;color:var(--text)}
-    .rt-desc{font-size:0.68rem;color:var(--text-3);margin-top:1px}
-    .desc-textarea{width:100%;min-height:90px;max-height:160px;background:var(--surface-2);border:1px solid var(--border-2);border-radius:var(--r);color:var(--text);padding:12px 14px;outline:none;resize:vertical;font-size:0.84rem;line-height:1.55;transition:border-color 150ms}
-    .desc-textarea::placeholder{color:var(--text-3)}
-    .desc-textarea:focus{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-soft)}
-    .desc-hint{font-size:0.72rem;color:var(--text-3);margin-top:8px;line-height:1.5}
-    .next-btn-wrap{margin-top:auto;padding-top:16px}
-    .next-btn{display:flex;align-items:center;justify-content:center;gap:8px;width:100%;height:46px;background:var(--surface-2);border:1px solid var(--border-2);border-radius:var(--r);color:var(--text-2);font-size:0.88rem;font-weight:600;transition:border-color 150ms,background 150ms,color 150ms}
-    .next-btn:hover{border-color:var(--accent);background:var(--accent-soft);color:#a5b4fc}
-
-    /* Step 2 */
-    .back-link{display:flex;align-items:center;gap:6px;padding:12px 20px 4px;font-size:0.75rem;font-weight:600;color:var(--text-3);cursor:pointer;transition:color 150ms;background:none;border:none}
-    .back-link:hover{color:var(--text-2)}
-    .form-section{padding:14px 20px;border-bottom:1px solid var(--border)}
-    .section-head{display:flex;align-items:center;gap:10px;margin-bottom:10px}
-    .section-icon{font-size:1rem;width:30px;height:30px;display:grid;place-items:center;background:var(--surface-2);border:1px solid var(--border-2);border-radius:var(--r-sm);flex-shrink:0}
-    .section-meta{flex:1;min-width:0}
-    .section-title{font-size:0.82rem;font-weight:700;color:var(--text);display:flex;align-items:center;gap:6px;flex-wrap:wrap}
-    .section-desc{font-size:0.71rem;color:var(--text-3);margin-top:2px}
-    .req-badge{font-size:0.6rem;font-weight:700;padding:2px 6px;border-radius:999px;letter-spacing:0.04em;background:var(--accent-soft);border:1px solid rgba(99,102,241,0.3);color:#a5b4fc}
-    .opt-badge{font-size:0.6rem;font-weight:700;padding:2px 6px;border-radius:999px;letter-spacing:0.04em;background:var(--surface-2);border:1px solid var(--border-2);color:var(--text-3)}
-    .count-chip{display:inline-flex;align-items:center;justify-content:center;min-width:18px;height:18px;padding:0 5px;background:var(--accent-soft);border:1px solid rgba(99,102,241,0.3);border-radius:999px;font-size:0.65rem;font-weight:700;color:#a5b4fc;font-family:"JetBrains Mono",monospace}
-
-    /* Toggle */
-    .toggle-wrap{display:flex;align-items:center;gap:6px;margin-left:auto;flex-shrink:0}
-    .toggle-label{font-size:0.7rem;color:var(--text-3)}
-    .toggle{position:relative;width:32px;height:18px}
-    .toggle input{opacity:0;width:0;height:0;position:absolute}
-    .toggle-track{position:absolute;inset:0;background:var(--surface-2);border:1px solid var(--border-2);border-radius:999px;cursor:pointer;transition:background 200ms,border-color 200ms}
-    .toggle input:checked~.toggle-track{background:var(--accent);border-color:var(--accent)}
-    .toggle-thumb{position:absolute;top:2px;left:2px;width:12px;height:12px;background:white;border-radius:999px;transition:transform 200ms;pointer-events:none}
-    .toggle input:checked~.toggle-track .toggle-thumb{transform:translateX(14px)}
-
-    /* Component row */
-    .comp-row{display:flex;gap:6px;align-items:center;margin-bottom:6px}
-    .comp-input-wrap{position:relative;flex:1;min-width:0}
-    .comp-input{width:100%;height:38px;background:var(--surface-2);border:1px solid var(--border-2);border-radius:var(--r-sm);color:var(--text);padding:0 10px;outline:none;font-size:0.84rem;transition:border-color 150ms}
-    .comp-input:focus{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-soft)}
-    .comp-input::placeholder{color:var(--text-3);font-size:0.8rem}
-    .comp-input:not(:placeholder-shown){border-color:rgba(99,102,241,0.25)}
-    .comp-remove{width:32px;height:32px;background:transparent;border:1px solid var(--border-2);border-radius:var(--r-sm);color:var(--text-3);display:grid;place-items:center;flex-shrink:0;transition:background 150ms,color 150ms,border-color 150ms}
-    .comp-remove:hover{background:var(--red-soft);border-color:rgba(239,68,68,0.4);color:#fca5a5}
-    .driver-body{margin-top:4px} .driver-body[hidden]{display:none}
-    .add-btn{display:flex;align-items:center;gap:6px;height:32px;padding:0 12px;background:transparent;border:1px dashed var(--border-2);border-radius:var(--r-sm);color:var(--text-2);font-size:0.78rem;font-weight:500;width:100%;justify-content:center;transition:border-color 150ms,background 150ms,color 150ms;margin-top:4px}
-    .add-btn:hover{border-color:var(--accent);background:var(--accent-soft);color:#a5b4fc}
-
-    /* Run button */
-    .run-wrap{padding:16px 20px 24px;margin-top:auto;position:sticky;bottom:0;background:linear-gradient(to top,var(--bg) 60%,transparent)}
-    .run-btn{display:flex;align-items:center;justify-content:center;gap:8px;width:100%;height:50px;background:linear-gradient(135deg,#6366f1,#4f46e5);border:1px solid rgba(129,140,248,0.5);border-radius:var(--r);color:white;font-size:0.92rem;font-weight:700;letter-spacing:-0.01em;box-shadow:0 4px 24px rgba(99,102,241,0.3);transition:opacity 200ms,transform 150ms,box-shadow 200ms}
-    .run-btn:hover:not(:disabled){box-shadow:0 4px 32px rgba(99,102,241,0.55);transform:translateY(-1px)}
-    .run-btn:active:not(:disabled){transform:translateY(0)}
-    .run-btn:disabled{opacity:0.6;cursor:not-allowed}
-    .spinner{width:16px;height:16px;border:2px solid rgba(255,255,255,0.3);border-top-color:white;border-radius:999px;animation:spin 700ms linear infinite}
-    .spinner[hidden]{display:none}
-
-    /* Results panel */
-    .results-panel{overflow-y:auto;overflow-x:hidden;background:var(--bg)}
-    .results-panel::-webkit-scrollbar{width:4px}
-    .results-panel::-webkit-scrollbar-thumb{background:var(--border-2);border-radius:2px}
-
-    /* Empty state */
-    .empty-state{display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;gap:16px;padding:48px 32px;text-align:center}
-    .empty-bot{font-size:3.8rem;animation:float 3s ease-in-out infinite}
-    .empty-state h2{font-size:1.15rem;font-weight:800;color:var(--text)}
-    .empty-state>p{color:var(--text-2);font-size:0.86rem;line-height:1.6;max-width:300px}
-    .feature-pills{display:flex;flex-direction:column;gap:8px;width:100%;max-width:340px}
-    .feature-pill{display:flex;align-items:center;gap:12px;padding:11px 16px;background:var(--surface);border:1px solid var(--border);border-radius:var(--r);font-size:0.82rem;color:var(--text-2);text-align:left}
-    .feature-pill-icon{font-size:1.1rem;flex-shrink:0}
-    .feature-pill strong{color:var(--text)}
-
-    /* Loading */
-    .loading-state{padding:24px;display:flex;flex-direction:column;gap:14px}
-    .loading-state[hidden]{display:none}
-    .skel-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:18px;min-height:90px}
-    .skel-line{height:11px;border-radius:999px;margin-top:12px;background:linear-gradient(90deg,var(--surface-2) 25%,rgba(255,255,255,0.04) 50%,var(--surface-2) 75%);background-size:300% 100%;animation:shimmer 1.3s ease infinite}
-    .skel-h{height:16px;width:35%;border-radius:6px;margin-bottom:4px;margin-top:0}
-    .w25{width:25%} .w40{width:40%} .w60{width:60%} .w80{width:80%} .w95{width:95%}
-
-    /* Error */
-    .error-state{display:flex;align-items:flex-start;gap:14px;margin:24px;padding:18px;background:var(--red-soft);border:1px solid rgba(239,68,68,0.35);border-radius:var(--r);animation:fadeIn 250ms ease}
-    .error-state[hidden]{display:none}
-    .error-icon{color:#fca5a5;flex-shrink:0;margin-top:2px}
-    .error-msg{font-size:0.84rem;font-weight:700;color:#fecaca}
-    .error-detail{font-size:0.79rem;color:#fca5a5;margin-top:4px;line-height:1.5}
-    .retry-btn{margin-left:auto;flex-shrink:0;height:34px;padding:0 14px;background:rgba(239,68,68,0.2);border:1px solid rgba(239,68,68,0.4);border-radius:var(--r-sm);color:#fecaca;font-size:0.78rem;font-weight:600;transition:background 150ms}
-    .retry-btn:hover{background:rgba(239,68,68,0.3)}
-
-    /* Results content */
-    .results-content{padding:24px} .results-content[hidden]{display:none}
-
-    /* Score hero */
-    .score-hero{display:grid;grid-template-columns:auto 1fr;gap:24px;align-items:center;background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:24px;margin-bottom:16px;animation:fadeSlideUp 0.4s ease forwards}
-    .score-gauge{width:112px;height:112px}
-    .gauge-arc{transition:stroke-dashoffset 1s cubic-bezier(0.34,1.56,0.64,1),stroke 0.5s ease;transform-origin:center;transform:rotate(-90deg)}
-    .gauge-score-text{font-family:"JetBrains Mono",monospace;font-size:27px;font-weight:800;fill:var(--text)}
-    .gauge-label-text{font-size:9.5px;font-weight:600;fill:var(--text-3);letter-spacing:0.05em}
-    .score-meta{min-width:0}
-    .verdict-badge{display:inline-flex;align-items:center;gap:7px;padding:5px 13px;border-radius:999px;font-size:0.78rem;font-weight:800;letter-spacing:0.05em;border:1px solid;margin-bottom:10px}
-    .verdict-dot{width:7px;height:7px;border-radius:999px}
-    .verdict-ready{background:var(--green-soft);border-color:rgba(16,185,129,0.4);color:#6ee7b7}
-    .verdict-review{background:var(--amber-soft);border-color:rgba(245,158,11,0.4);color:#fcd34d}
-    .verdict-bad{background:var(--red-soft);border-color:rgba(239,68,68,0.4);color:#fca5a5}
-    .score-summary{font-size:0.83rem;color:var(--text-2);line-height:1.65}
-
-    /* Actions */
-    .results-actions{display:flex;gap:8px;margin-bottom:20px}
-    .action-btn{display:flex;align-items:center;gap:6px;height:34px;padding:0 13px;background:var(--surface);border:1px solid var(--border-2);border-radius:var(--r-sm);color:var(--text-2);font-size:0.77rem;font-weight:600;transition:border-color 150ms,color 150ms,background 150ms}
-    .action-btn:hover{border-color:var(--accent);color:#a5b4fc;background:var(--accent-soft)}
-
-    /* Section divider */
-    .results-section{margin-bottom:18px}
-    .section-divider{display:flex;align-items:center;gap:10px;margin-bottom:12px}
-    .sd-line{flex:1;height:1px;background:var(--border)}
-    .sd-label{font-size:0.67rem;font-weight:800;text-transform:uppercase;letter-spacing:0.09em;flex-shrink:0}
-    .sd-count{font-size:0.64rem;font-weight:800;min-width:18px;height:18px;padding:0 5px;display:grid;place-items:center;border-radius:999px;border:1px solid;font-family:"JetBrains Mono",monospace;flex-shrink:0}
-
-    /* Issue cards */
-    .issue-card{display:flex;gap:14px;background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:16px 18px;margin-bottom:8px;opacity:0;animation:fadeSlideUp 0.35s ease forwards}
-    .issue-icon-wrap{width:36px;height:36px;flex-shrink:0;display:grid;place-items:center;border-radius:var(--r-sm);border:1px solid}
-    .issue-body{flex:1;min-width:0}
-    .issue-category{font-size:0.64rem;font-weight:800;text-transform:uppercase;letter-spacing:0.08em;margin-bottom:4px}
-    .issue-title{font-size:0.9rem;font-weight:700;color:var(--text);margin-bottom:5px;line-height:1.3}
-    .issue-detail{font-size:0.81rem;color:var(--text-2);line-height:1.65}
-    .issue-fix{display:flex;align-items:flex-start;gap:8px;margin-top:10px;padding:9px 12px;border-radius:var(--r-sm);font-size:0.79rem;line-height:1.55}
-    .issue-fix-icon{flex-shrink:0;margin-top:2px}
-
-    .issue-critical{border-color:rgba(239,68,68,0.3);background:rgba(239,68,68,0.04)}
-    .issue-critical .issue-icon-wrap{background:var(--red-soft);border-color:rgba(239,68,68,0.4);color:#fca5a5}
-    .issue-critical .issue-category{color:#fca5a5}
-    .issue-critical .issue-fix{background:rgba(239,68,68,0.08);border:1px solid rgba(239,68,68,0.2);color:#fecaca}
-
-    .issue-warning{border-color:rgba(245,158,11,0.25)}
-    .issue-warning .issue-icon-wrap{background:var(--amber-soft);border-color:rgba(245,158,11,0.4);color:#fcd34d}
-    .issue-warning .issue-category{color:#fcd34d}
-    .issue-warning .issue-fix{background:rgba(245,158,11,0.08);border:1px solid rgba(245,158,11,0.2);color:#fde68a}
-
-    .issue-improvement{border-color:rgba(59,130,246,0.2)}
-    .issue-improvement .issue-icon-wrap{background:var(--blue-soft);border-color:rgba(59,130,246,0.35);color:#93c5fd}
-    .issue-improvement .issue-category{color:#93c5fd}
-    .issue-improvement .issue-fix{background:rgba(59,130,246,0.08);border:1px solid rgba(59,130,246,0.2);color:#bfdbfe}
-
-    /* Component table */
-    .comp-table{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);overflow:hidden;opacity:0;animation:fadeSlideUp 0.4s ease forwards}
-    .comp-table-head{display:grid;grid-template-columns:1fr 88px 1fr;padding:10px 18px;background:var(--surface-2);border-bottom:1px solid var(--border);font-size:0.63rem;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:var(--text-3)}
-    .comp-table-row{display:grid;grid-template-columns:1fr 88px 1fr;padding:11px 18px;align-items:start;border-bottom:1px solid var(--border);transition:background 150ms}
-    .comp-table-row:last-child{border-bottom:none}
-    .comp-table-row:hover{background:var(--surface-2)}
-    .comp-name{font-size:0.83rem;font-weight:600;color:var(--text)}
-    .comp-role{font-size:0.71rem;color:var(--text-3);margin-top:2px}
-    .comp-status-badge{display:inline-flex;align-items:center;gap:5px;padding:3px 8px;border-radius:999px;font-size:0.63rem;font-weight:800;font-family:"JetBrains Mono",monospace;border:1px solid;letter-spacing:0.04em;white-space:nowrap}
-    .csb-dot{width:5px;height:5px;border-radius:999px;flex-shrink:0}
-    .csb-ok{background:var(--green-soft);border-color:rgba(16,185,129,0.35);color:#6ee7b7}
-    .csb-warning{background:var(--amber-soft);border-color:rgba(245,158,11,0.35);color:#fcd34d}
-    .csb-critical{background:var(--red-soft);border-color:rgba(239,68,68,0.35);color:#fca5a5}
-    .csb-unknown{background:var(--surface-3);border-color:var(--border-2);color:var(--text-3)}
-    .comp-note{font-size:0.77rem;color:var(--text-2);line-height:1.5}
-
-    /* All clear */
-    .all-clear{display:flex;align-items:center;gap:14px;padding:18px 20px;background:var(--green-soft);border:1px solid rgba(16,185,129,0.3);border-radius:var(--r);margin-bottom:18px;opacity:0;animation:fadeSlideUp 0.4s ease forwards}
-    .all-clear[hidden]{display:none}
-    .all-clear-icon{font-size:1.6rem;flex-shrink:0}
-    .all-clear-title{font-size:0.9rem;font-weight:700;color:#6ee7b7}
-    .all-clear-sub{font-size:0.8rem;color:rgba(110,231,183,0.7);margin-top:2px}
-
-    @keyframes spin{to{transform:rotate(360deg)}}
-    @keyframes shimmer{0%{background-position:100% 0}100%{background-position:-100% 0}}
-    @keyframes float{0%,100%{transform:translateY(0)}50%{transform:translateY(-8px)}}
-    @keyframes fadeIn{from{opacity:0}to{opacity:1}}
-    @keyframes fadeSlideUp{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:translateY(0)}}
-
-    @media(max-width:1000px){.app{grid-template-columns:360px 1fr}}
-    @media(max-width:800px){.app{grid-template-columns:1fr;height:auto}.form-panel{border-right:none;border-bottom:1px solid var(--border);overflow:visible}.results-panel{overflow:visible;min-height:500px}.run-wrap{position:static}.score-hero{grid-template-columns:1fr}}
-    @media(max-width:540px){.header-inner{padding:0 16px}.results-content,.loading-state{padding:16px}.robot-types{grid-template-columns:1fr}.comp-table-head,.comp-table-row{grid-template-columns:1fr 80px}.comp-table-head>:last-child,.comp-table-row>:last-child{display:none}}
+    .container { max-width: 1200px; margin: 0 auto; padding: 24px; display: grid; grid-template-columns: 1fr 1fr; gap: 32px; min-height: 100vh; }
+    @media (max-width: 900px) { .container { grid-template-columns: 1fr; } }
+    
+    /* Typography */
+    h1 { font-size: 24px; font-weight: 600; letter-spacing: -0.02em; margin-bottom: 8px; display: flex; align-items: center; gap: 8px; }
+    h2 { font-size: 16px; font-weight: 600; margin-bottom: 16px; }
+    p { color: var(--fg-muted); margin-bottom: 16px; }
+    
+    /* Forms */
+    .card { border: 1px solid var(--border); border-radius: var(--radius); padding: 24px; background: var(--bg); margin-bottom: 24px; }
+    .field { margin-bottom: 20px; }
+    .field:last-child { margin-bottom: 0; }
+    label { display: block; font-size: 13px; font-weight: 500; margin-bottom: 8px; color: var(--fg); }
+    input, textarea, select { width: 100%; padding: 10px 12px; border: 1px solid var(--border); border-radius: var(--radius); font-family: inherit; font-size: 14px; background: var(--bg); color: var(--fg); outline: none; transition: border 0.2s; }
+    input:focus, textarea:focus, select:focus { border-color: var(--border-hover); }
+    
+    /* Buttons */
+    button { padding: 10px 16px; border-radius: var(--radius); font-weight: 500; font-size: 14px; cursor: pointer; transition: all 0.2s; border: 1px solid transparent; display: inline-flex; align-items: center; justify-content: center; gap: 8px; }
+    .btn-primary { background: var(--accent); color: var(--accent-fg); border-color: var(--accent); }
+    .btn-primary:hover { background: #333; }
+    .btn-secondary { background: var(--bg); color: var(--fg); border-color: var(--border); }
+    .btn-secondary:hover { background: var(--bg-muted); }
+    .btn-primary:disabled { opacity: 0.5; cursor: not-allowed; }
+    
+    /* Component Picker */
+    .picker-wrap { display: flex; gap: 8px; margin-bottom: 12px; }
+    .picker-wrap input { flex: 1; }
+    .chip-list { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 12px; }
+    .chip { padding: 4px 10px; border: 1px solid var(--border); border-radius: 16px; font-size: 12px; cursor: pointer; background: var(--bg-muted); color: var(--fg-muted); transition: all 0.2s; }
+    .chip:hover { border-color: var(--border-hover); color: var(--fg); }
+    
+    /* Added Items */
+    .item-list { display: flex; flex-direction: column; gap: 8px; }
+    .item-row { display: flex; align-items: center; justify-content: space-between; padding: 10px 12px; border: 1px solid var(--border); border-radius: var(--radius); font-size: 14px; }
+    .item-remove { cursor: pointer; color: var(--fg-muted); border: none; background: none; padding: 4px; display: flex; align-items: center; justify-content: center; }
+    .item-remove:hover { color: var(--error); }
+    
+    /* SVG Icons */
+    .icon { width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+    
+    /* Results */
+    .results-panel { position: sticky; top: 24px; }
+    .empty-state { text-align: center; padding: 48px 24px; color: var(--fg-muted); border: 1px dashed var(--border); border-radius: var(--radius); }
+    .empty-icon { width: 48px; height: 48px; margin: 0 auto 16px; opacity: 0.2; }
+    
+    .loading-state { text-align: center; padding: 48px 24px; display: none; }
+    .spinner { animation: spin 1s linear infinite; width: 24px; height: 24px; margin: 0 auto 16px; }
+    @keyframes spin { 100% { transform: rotate(360deg); } }
+    
+    .results-content { display: none; }
+    
+    .score-card { display: flex; align-items: center; gap: 24px; padding: 24px; border: 1px solid var(--border); border-radius: var(--radius); margin-bottom: 24px; }
+    .score-circle { width: 80px; height: 80px; position: relative; }
+    .score-circle svg { transform: rotate(-90deg); width: 100%; height: 100%; }
+    .score-bg { fill: none; stroke: var(--border); stroke-width: 8; }
+    .score-progress { fill: none; stroke: var(--info); stroke-width: 8; stroke-dasharray: 251; stroke-dashoffset: 251; transition: stroke-dashoffset 1s ease; }
+    .score-text { position: absolute; top: 0; left: 0; right: 0; bottom: 0; display: flex; align-items: center; justify-content: center; font-size: 24px; font-weight: 600; }
+    .score-meta h3 { font-size: 18px; margin-bottom: 4px; }
+    
+    /* Issue Cards */
+    .issue { padding: 16px; border: 1px solid var(--border); border-radius: var(--radius); margin-bottom: 12px; display: flex; gap: 12px; }
+    .issue-icon { width: 20px; height: 20px; flex-shrink: 0; margin-top: 2px; }
+    .issue-title { font-weight: 600; font-size: 14px; margin-bottom: 4px; }
+    .issue-desc { font-size: 13px; color: var(--fg-muted); margin-bottom: 8px; }
+    .issue-fix { font-size: 13px; background: var(--bg-muted); padding: 8px 12px; border-radius: 4px; border: 1px solid var(--border); display: flex; gap: 8px; align-items: flex-start; }
+    
+    .sev-critical { border-color: var(--error); background: var(--error-bg); }
+    .sev-critical .issue-icon { stroke: var(--error); }
+    .sev-warning { border-color: var(--warn); background: var(--warn-bg); }
+    .sev-warning .issue-icon { stroke: var(--warn); }
+    .sev-improvement { border-color: var(--info); background: var(--info-bg); }
+    .sev-improvement .issue-icon { stroke: var(--info); }
+    
+    /* Table */
+    .table-wrap { overflow-x: auto; border: 1px solid var(--border); border-radius: var(--radius); margin-top: 24px; }
+    table { width: 100%; border-collapse: collapse; text-align: left; font-size: 13px; }
+    th, td { padding: 12px 16px; border-bottom: 1px solid var(--border); }
+    th { font-weight: 500; color: var(--fg-muted); background: var(--bg-muted); }
+    tr:last-child td { border-bottom: none; }
+    .badge { padding: 2px 8px; border-radius: 12px; font-size: 11px; font-weight: 500; text-transform: uppercase; border: 1px solid var(--border); }
+    .badge.ok { border-color: var(--info); color: var(--info); background: var(--info-bg); }
+    .badge.warning { border-color: var(--warn); color: var(--warn); background: var(--warn-bg); }
+    .badge.critical { border-color: var(--error); color: var(--error); background: var(--error-bg); }
+    
   </style>
 </head>
 <body>
 
-<header class="site-header">
-  <div class="header-inner">
-    <div class="logo">
-      <div class="logo-icon">
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
-          <path d="M6 4v5M18 4v5M4 9h16M7 9v10M17 9v10M7 14h10" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
-          <circle cx="7" cy="19" r="1.5" fill="currentColor"/><circle cx="17" cy="19" r="1.5" fill="currentColor"/>
-        </svg>
+<div class="container">
+  
+  <!-- Left Column: Form -->
+  <div class="form-panel">
+    <h1>
+      <svg class="icon" viewBox="0 0 24 24"><rect x="2" y="2" width="20" height="8" rx="2"/><rect x="2" y="14" width="20" height="8" rx="2"/><line x1="6" y1="6" x2="6.01" y2="6"/><line x1="6" y1="18" x2="6.01" y2="18"/></svg>
+      BotCheck
+    </h1>
+    <p>AI-powered hardware compatibility validator.</p>
+    
+    <div class="card">
+      <h2>Project Details</h2>
+      <div class="field">
+        <label>Robot Type</label>
+        <select id="proj-type">
+          <option value="Wheeled Robot">Wheeled Robot</option>
+          <option value="Drone / Quadcopter">Drone / Quadcopter</option>
+          <option value="Robotic Arm">Robotic Arm</option>
+          <option value="IoT / Smart Device">IoT / Smart Device</option>
+          <option value="Custom">Custom / Other</option>
+        </select>
       </div>
-      <div><h1>BotCheck</h1><p>AI Robotics Hardware Validator</p></div>
-    </div>
-    <div class="header-right">
-      <span class="pill pill-accent">
-        <svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor"><path d="M13 2 4 14h7l-1 8 9-13h-7Z"/></svg>
-        AI-Powered
-      </span>
-      <span class="pill pill-green">Any Component</span>
-    </div>
-  </div>
-</header>
-
-<div class="app">
-  <aside class="form-panel" id="formPanel">
-
-    <div class="step-indicator">
-      <div class="step-dot active" id="step-dot-1" onclick="goToStep(1)">
-        <div class="step-num" id="step-num-1">1</div><span>Your Project</span>
-      </div>
-      <div class="step-connector" id="step-conn"></div>
-      <div class="step-dot" id="step-dot-2" onclick="goToStep(2)">
-        <div class="step-num" id="step-num-2">2</div><span>Components</span>
+      <div class="field">
+        <label>Description</label>
+        <textarea id="proj-desc" rows="3" placeholder="e.g. A 2-wheel drive line-following robot for a school competition. Running on AA batteries."></textarea>
       </div>
     </div>
-
-    <!-- Step 1: Context -->
-    <div class="step-panel active" id="step-1">
-      <div class="ctx-panel">
-        <div class="ctx-intro">What are you building?</div>
-        <div class="ctx-sub">Give the AI context so advice is specific to your project — not generic textbook answers.</div>
-
-        <div class="field-label">Project / Robot Type</div>
-        <div class="robot-types" id="robot-types">
-          <button class="robot-type-card" data-type="Wheeled Robot" onclick="selectType(this)">
-            <span class="rt-icon">🚗</span>
-            <div><div class="rt-name">Wheeled Robot</div><div class="rt-desc">2WD, 4WD, rover, line follower</div></div>
-          </button>
-          <button class="robot-type-card" data-type="Drone / Quadcopter" onclick="selectType(this)">
-            <span class="rt-icon">🚁</span>
-            <div><div class="rt-name">Drone / Quad</div><div class="rt-desc">FPV, racing, aerial photo</div></div>
-          </button>
-          <button class="robot-type-card" data-type="Robotic Arm" onclick="selectType(this)">
-            <span class="rt-icon">🦾</span>
-            <div><div class="rt-name">Robotic Arm</div><div class="rt-desc">Pick-and-place, manipulator</div></div>
-          </button>
-          <button class="robot-type-card" data-type="IoT / Smart Device" onclick="selectType(this)">
-            <span class="rt-icon">📡</span>
-            <div><div class="rt-name">IoT Device</div><div class="rt-desc">Sensor node, automation</div></div>
-          </button>
-          <button class="robot-type-card" data-type="3D Printer / CNC" onclick="selectType(this)">
-            <span class="rt-icon">🖨️</span>
-            <div><div class="rt-name">3D Printer / CNC</div><div class="rt-desc">Motion control, steppers</div></div>
-          </button>
-          <button class="robot-type-card" data-type="Custom / Other" onclick="selectType(this)">
-            <span class="rt-icon">🔧</span>
-            <div><div class="rt-name">Custom / Other</div><div class="rt-desc">Describe it below</div></div>
-          </button>
+    
+    <div class="card">
+      <h2>Components</h2>
+      
+      <!-- Controller -->
+      <div class="field">
+        <label>Controller / Brain (Required)</label>
+        <div class="picker-wrap">
+          <input type="text" id="in-brain" placeholder="Type custom or select below...">
+          <button class="btn-secondary" onclick="addSingleItem('brain')">Set</button>
         </div>
-
-        <div class="field-label">
-          Describe your project
-          <span style="color:var(--text-3);font-weight:400;text-transform:none;letter-spacing:0;font-size:0.72rem"> — the more detail, the better the advice</span>
+        <div class="chip-list">
+          <span class="chip" onclick="setSingle('brain', 'Arduino Uno')">Arduino Uno</span>
+          <span class="chip" onclick="setSingle('brain', 'ESP32')">ESP32</span>
+          <span class="chip" onclick="setSingle('brain', 'Raspberry Pi Pico')">RPi Pico</span>
         </div>
-        <textarea class="desc-textarea" id="project-desc" rows="4"
-          placeholder="e.g. A 2-wheel drive line-following robot for a school competition. Needs to follow a black line on white floor, avoid obstacles, and be remotely controlled over Bluetooth. Budget is tight — running on 4 AA batteries. Speed matters more than torque."></textarea>
-        <div class="desc-hint">💡 Mention your goals, constraints, and use case. The AI will tailor advice to your specific situation — including recommending parts that fit your budget and application.</div>
-
-        <div class="next-btn-wrap">
-          <button class="next-btn" onclick="goToStep(2)">
-            Continue to Components
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="m9 18 6-6-6-6" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg>
-          </button>
-        </div>
+        <div id="list-brain" class="item-list"></div>
       </div>
-    </div>
-
-    <!-- Step 2: Components -->
-    <div class="step-panel" id="step-2">
-      <button class="back-link" onclick="goToStep(1)">
-        <svg width="13" height="13" viewBox="0 0 24 24" fill="none"><path d="m15 18-6-6 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
-        Back to project context
-      </button>
-
-      <!-- Datalists for autocomplete -->
-      <datalist id="dl-brain">
-        <option value="Arduino Uno"><option value="Arduino Nano"><option value="Arduino Mega 2560">
-        <option value="Arduino Pro Mini 5V"><option value="Arduino Pro Mini 3.3V"><option value="Arduino Leonardo">
-        <option value="Arduino Due"><option value="ESP32"><option value="ESP32-S3"><option value="ESP32-C3">
-        <option value="ESP8266 NodeMCU"><option value="Raspberry Pi Zero 2W"><option value="Raspberry Pi 4B">
-        <option value="Raspberry Pi 3B+"><option value="Raspberry Pi Pico"><option value="Raspberry Pi Pico W">
-        <option value="STM32 Blue Pill"><option value="STM32 Black Pill"><option value="Teensy 4.0"><option value="Teensy 4.1">
-        <option value="BeagleBone Black"><option value="NVIDIA Jetson Nano"><option value="Adafruit Feather M0">
-        <option value="Seeed XIAO ESP32S3"><option value="nRF52840 Feather">
-      </datalist>
-      <datalist id="dl-power">
-        <option value="1S LiPo (3.7V)"><option value="2S LiPo (7.4V)"><option value="3S LiPo (11.1V)">
-        <option value="4S LiPo (14.8V)"><option value="6S LiPo (22.2V)"><option value="5V USB Power Bank">
-        <option value="7.2V NiMH Pack"><option value="9V PP3 Battery"><option value="12V Lead Acid Battery">
-        <option value="12V Li-ion Pack"><option value="18650 Cell (3.7V)"><option value="2x 18650 (7.4V)">
-        <option value="3x 18650 (11.1V)"><option value="4x AA Batteries (6V)"><option value="4x AAA Batteries (6V)">
-        <option value="24V Power Supply"><option value="5V 3A DC Adapter"><option value="9V 2A DC Adapter">
-        <option value="12V 5A DC Adapter"><option value="19V Laptop Adapter">
-      </datalist>
-      <datalist id="dl-driver">
-        <option value="L298N"><option value="L293D"><option value="DRV8833"><option value="TB6612FNG">
-        <option value="DRV8825"><option value="A4988"><option value="TMC2208"><option value="TMC2209">
-        <option value="BTS7960"><option value="ESC 20A"><option value="ESC 30A"><option value="ESC 40A">
-        <option value="ESC 60A"><option value="VESC 6"><option value="Cytron MD10C"><option value="Sabertooth 2x32">
-        <option value="PCA9685 Servo Driver"><option value="Pololu DRV8256P">
-      </datalist>
-      <datalist id="dl-motor">
-        <option value="SG90 Micro Servo"><option value="MG90S Metal Servo"><option value="MG996R Servo">
-        <option value="DS3218 High Torque Servo"><option value="N20 Gear Motor 6V"><option value="N20 Gear Motor 12V">
-        <option value="TT Gear Motor"><option value="JGA25-371 Gear Motor"><option value="775 DC Motor 12V">
-        <option value="540 DC Motor"><option value="28BYJ-48 Stepper"><option value="NEMA 17 Stepper">
-        <option value="NEMA 23 Stepper"><option value="Brushless 2204 BLDC"><option value="Brushless 2212 BLDC">
-        <option value="Brushless 2306 BLDC"><option value="Brushless 3508 BLDC"><option value="Linear Actuator 12V">
-      </datalist>
-      <datalist id="dl-sensor">
-        <option value="HC-SR04 Ultrasonic"><option value="HC-SR501 PIR"><option value="MPU-6050 IMU">
-        <option value="MPU-9250 IMU"><option value="BNO055 IMU"><option value="BMP280 Barometer">
-        <option value="BME280 Temp Humidity Pressure"><option value="NEO-6M GPS"><option value="NEO-M8N GPS">
-        <option value="OV2640 Camera"><option value="Line Sensor TCRT5000"><option value="Encoder Optical">
-        <option value="Encoder Magnetic AS5600"><option value="TCS34725 Color Sensor"><option value="VL53L0X ToF Laser">
-        <option value="VL53L1X ToF Laser"><option value="RPLIDAR A1 LiDAR"><option value="DHT22 Temp Humidity">
-        <option value="ACS712 Current Sensor"><option value="HX711 Load Cell ADC"><option value="MQ-2 Gas Sensor">
-        <option value="IR Obstacle Sensor"><option value="Soil Moisture Sensor"><option value="Sound Sensor">
-      </datalist>
-      <datalist id="dl-comm">
-        <option value="HC-05 Bluetooth"><option value="HC-06 Bluetooth"><option value="HM-10 BLE">
-        <option value="NRF24L01"><option value="NRF24L01 PA+LNA"><option value="LoRa SX1278"><option value="LoRa SX1276">
-        <option value="SIM800L GSM"><option value="SIM7600 4G LTE"><option value="ESP-01 WiFi">
-        <option value="XBee Series 2"><option value="433MHz RF Module"><option value="Zigbee CC2530">
-        <option value="PN532 NFC Reader"><option value="MFRC522 RFID"><option value="CAN Bus Module MCP2515">
-      </datalist>
-
-      <!-- Brain -->
-      <div class="form-section">
-        <div class="section-head">
-          <div class="section-icon">🧠</div>
-          <div class="section-meta">
-            <div class="section-title">Brain / Controller <span class="req-badge">REQUIRED</span></div>
-            <div class="section-desc">Microcontroller or SBC — type any name, not limited to the suggestions</div>
-          </div>
-        </div>
-        <div id="brain-slot"></div>
-      </div>
-
+      
       <!-- Power -->
-      <div class="form-section">
-        <div class="section-head">
-          <div class="section-icon">⚡</div>
-          <div class="section-meta">
-            <div class="section-title">Power Source <span class="req-badge">REQUIRED</span></div>
-            <div class="section-desc">LiPo, NiMH, power bank, DC adapter — type any</div>
-          </div>
+      <div class="field">
+        <label>Power Source (Required)</label>
+        <div class="picker-wrap">
+          <input type="text" id="in-power" placeholder="Type custom or select below...">
+          <button class="btn-secondary" onclick="addSingleItem('power')">Set</button>
         </div>
-        <div id="power-slot"></div>
-      </div>
-
-      <!-- Motor Driver -->
-      <div class="form-section">
-        <div class="section-head">
-          <div class="section-icon">🔌</div>
-          <div class="section-meta">
-            <div class="section-title">Motor Driver / ESC <span class="opt-badge">OPTIONAL</span></div>
-            <div class="section-desc">Skip only for servo-only builds — DC motors always need a driver</div>
-          </div>
-          <div class="toggle-wrap">
-            <span class="toggle-label" id="driver-toggle-lbl">On</span>
-            <label class="toggle" aria-label="Include motor driver">
-              <input type="checkbox" id="driver-toggle" checked>
-              <div class="toggle-track"><div class="toggle-thumb"></div></div>
-            </label>
-          </div>
+        <div class="chip-list">
+          <span class="chip" onclick="setSingle('power', '2S LiPo (7.4V)')">2S LiPo</span>
+          <span class="chip" onclick="setSingle('power', '4x AA Batteries')">4x AA</span>
+          <span class="chip" onclick="setSingle('power', '9V Battery')">9V Battery</span>
         </div>
-        <div id="driver-body" class="driver-body"><div id="driver-slot"></div></div>
+        <div id="list-power" class="item-list"></div>
       </div>
-
+      
       <!-- Motors -->
-      <div class="form-section">
-        <div class="section-head">
-          <div class="section-icon">⚙️</div>
-          <div class="section-meta">
-            <div class="section-title">
-              Motors <span class="req-badge">REQUIRED</span>
-              <span class="count-chip" id="motors-count">0</span>
-            </div>
-            <div class="section-desc">DC, servo, stepper, BLDC — add all motors you plan to use</div>
-          </div>
+      <div class="field">
+        <label>Motors (Required)</label>
+        <div class="picker-wrap">
+          <input type="text" id="in-motors" placeholder="Type custom or select below...">
+          <button class="btn-secondary" onclick="addMultiItem('motors')">Add</button>
         </div>
-        <div id="motors-list"></div>
-        <button type="button" class="add-btn" id="add-motor-btn">
-          <svg width="13" height="13" viewBox="0 0 24 24" fill="none"><path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg>
-          Add Motor
-        </button>
-      </div>
-
-      <!-- Sensors -->
-      <div class="form-section">
-        <div class="section-head">
-          <div class="section-icon">📡</div>
-          <div class="section-meta">
-            <div class="section-title">
-              Sensors <span class="opt-badge">OPTIONAL</span>
-              <span class="count-chip" id="sensors-count" hidden>0</span>
-            </div>
-            <div class="section-desc">Ultrasonic, IMU, GPS, camera, encoders — type any</div>
-          </div>
+        <div class="chip-list">
+          <span class="chip" onclick="addMulti('motors', 'N20 Gear Motor 6V')">N20 6V</span>
+          <span class="chip" onclick="addMulti('motors', 'SG90 Servo')">SG90 Servo</span>
+          <span class="chip" onclick="addMulti('motors', 'NEMA 17 Stepper')">NEMA 17</span>
         </div>
-        <div id="sensors-list"></div>
-        <button type="button" class="add-btn" id="add-sensor-btn">
-          <svg width="13" height="13" viewBox="0 0 24 24" fill="none"><path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg>
-          Add Sensor
-        </button>
+        <div id="list-motors" class="item-list"></div>
       </div>
-
-      <!-- Comms -->
-      <div class="form-section">
-        <div class="section-head">
-          <div class="section-icon">📶</div>
-          <div class="section-meta">
-            <div class="section-title">
-              Communication <span class="opt-badge">OPTIONAL</span>
-              <span class="count-chip" id="comms-count" hidden>0</span>
-            </div>
-            <div class="section-desc">Bluetooth, WiFi, LoRa, RF, GSM — type any</div>
-          </div>
+      
+      <!-- Motor Driver -->
+      <div class="field">
+        <label>Motor Driver (Optional)</label>
+        <div class="picker-wrap">
+          <input type="text" id="in-driver" placeholder="Type custom or select below...">
+          <button class="btn-secondary" onclick="addSingleItem('driver')">Set</button>
         </div>
-        <div id="comms-list"></div>
-        <button type="button" class="add-btn" id="add-comm-btn">
-          <svg width="13" height="13" viewBox="0 0 24 24" fill="none"><path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg>
-          Add Module
-        </button>
+        <div class="chip-list">
+          <span class="chip" onclick="setSingle('driver', 'L298N')">L298N</span>
+          <span class="chip" onclick="setSingle('driver', 'TB6612FNG')">TB6612FNG</span>
+          <span class="chip" onclick="setSingle('driver', 'A4988')">A4988</span>
+        </div>
+        <div id="list-driver" class="item-list"></div>
       </div>
-
-      <div class="run-wrap">
-        <button type="button" class="run-btn" id="run-btn">
-          <svg width="17" height="17" viewBox="0 0 24 24" fill="none"><path d="M8 5.14v14l11-7-11-7Z" fill="currentColor"/></svg>
-          <span id="run-label">Run BotCheck</span>
-          <span class="spinner" id="run-spinner" hidden></span>
-        </button>
+      
+      <!-- Sensors & Comms -->
+      <div class="field">
+        <label>Sensors & Extras (Optional)</label>
+        <div class="picker-wrap">
+          <input type="text" id="in-sensors" placeholder="Type custom or select below...">
+          <button class="btn-secondary" onclick="addMultiItem('sensors')">Add</button>
+        </div>
+        <div class="chip-list">
+          <span class="chip" onclick="addMulti('sensors', 'HC-SR04 Ultrasonic')">HC-SR04</span>
+          <span class="chip" onclick="addMulti('sensors', 'MPU6050 IMU')">MPU6050</span>
+          <span class="chip" onclick="addMulti('sensors', 'HC-05 Bluetooth')">HC-05</span>
+        </div>
+        <div id="list-sensors" class="item-list"></div>
       </div>
+      
     </div>
-  </aside>
-
-  <!-- Results Panel -->
-  <section class="results-panel" id="resultsPanel">
-
-    <div class="empty-state" id="empty-state">
-      <div class="empty-bot">🤖</div>
-      <h2>AI-Powered Hardware Validation</h2>
-      <p>Tell BotCheck what you're building and your components — the AI catches problems a checklist never would.</p>
-      <div class="feature-pills">
-        <div class="feature-pill">
-          <span class="feature-pill-icon">🎯</span>
-          <span>Works with <strong>any part name</strong> — not locked to a preset list</span>
-        </div>
-        <div class="feature-pill">
-          <span class="feature-pill-icon" style="color:#fca5a5">⛔</span>
-          <span>Flags <strong style="color:#fca5a5">CRITICAL</strong> issues that will damage or destroy components</span>
-        </div>
-        <div class="feature-pill">
-          <span class="feature-pill-icon" style="color:#fcd34d">⚠️</span>
-          <span>Catches <strong style="color:#fcd34d">WARNINGS</strong> causing poor performance or early failure</span>
-        </div>
-        <div class="feature-pill">
-          <span class="feature-pill-icon" style="color:#93c5fd">💡</span>
-          <span>Suggests <strong style="color:#93c5fd">IMPROVEMENTS</strong> even for builds that already work</span>
-        </div>
-      </div>
+    
+    <button class="btn-primary" id="btn-analyze" style="width: 100%; padding: 14px; font-size: 16px;">
+      <svg class="icon" viewBox="0 0 24 24"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+      Analyze Build
+    </button>
+  </div>
+  
+  <!-- Right Column: Results -->
+  <div class="results-panel">
+    
+    <div id="state-empty" class="empty-state">
+      <svg class="empty-icon icon" viewBox="0 0 24 24"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+      <h2>Ready to Analyze</h2>
+      <p>Add your components on the left and click Analyze Build to see compatibility checks.</p>
     </div>
-
-    <div class="loading-state" id="loading-state" hidden>
-      <div class="skel-card" style="min-height:130px">
-        <div class="skel-line skel-h w25" style="margin-top:0"></div>
-        <div class="skel-line w40"></div>
-        <div class="skel-line w95" style="margin-top:10px"></div>
-        <div class="skel-line w80" style="margin-top:4px"></div>
-        <div class="skel-line w60" style="margin-top:4px"></div>
-      </div>
-      <div class="skel-card">
-        <div class="skel-line skel-h w25" style="margin-top:0"></div>
-        <div class="skel-line w60"></div>
-        <div class="skel-line w80" style="margin-top:6px"></div>
-        <div class="skel-line w40" style="margin-top:4px"></div>
-      </div>
-      <div class="skel-card">
-        <div class="skel-line skel-h w30" style="margin-top:0"></div>
-        <div class="skel-line w55"></div>
-        <div class="skel-line w80" style="margin-top:6px"></div>
-      </div>
-      <div class="skel-card">
-        <div class="skel-line skel-h w20" style="margin-top:0"></div>
-        <div class="skel-line w95"></div>
-        <div class="skel-line w60" style="margin-top:4px"></div>
-      </div>
+    
+    <div id="state-loading" class="loading-state">
+      <svg class="spinner icon" viewBox="0 0 24 24"><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg>
+      <h2>Analyzing your hardware...</h2>
+      <p>Running checks on voltages, currents, and logic levels.</p>
     </div>
-
-    <div class="error-state" id="error-state" hidden>
-      <div class="error-icon">
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="1.7"/><path d="M12 8v5M12 16h.01" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
-      </div>
-      <div>
-        <div class="error-msg">BotCheck failed</div>
-        <div class="error-detail" id="error-detail">Check your API key and network connection.</div>
-      </div>
-      <button type="button" class="retry-btn" id="retry-btn">Retry</button>
-    </div>
-
-    <div class="results-content" id="results-content" hidden>
-
-      <div class="score-hero" id="score-hero">
-        <div>
-          <svg class="score-gauge" viewBox="0 0 112 112" aria-label="Build score">
-            <circle cx="56" cy="56" r="47" fill="none" stroke="rgba(255,255,255,0.06)" stroke-width="8"/>
-            <circle class="gauge-arc" id="gauge-arc" cx="56" cy="56" r="47" fill="none"
-              stroke="#10b981" stroke-width="8" stroke-linecap="round"
-              stroke-dasharray="295.31" stroke-dashoffset="295.31"/>
-            <text class="gauge-score-text" id="gauge-score" x="56" y="52" text-anchor="middle" dominant-baseline="middle">0</text>
-            <text class="gauge-label-text mono" x="56" y="68" text-anchor="middle">SCORE</text>
+    
+    <div id="state-results" class="results-content">
+      
+      <div class="score-card">
+        <div class="score-circle">
+          <svg viewBox="0 0 100 100">
+            <circle class="score-bg" cx="50" cy="50" r="40"/>
+            <circle class="score-progress" id="score-arc" cx="50" cy="50" r="40"/>
           </svg>
+          <div class="score-text" id="score-val">0</div>
         </div>
         <div class="score-meta">
-          <div class="verdict-badge" id="verdict-badge">
-            <span class="verdict-dot" id="verdict-dot"></span>
-            <span id="verdict-text">—</span>
-          </div>
-          <div class="score-summary" id="score-summary"></div>
+          <h3 id="verdict-title">Review</h3>
+          <p id="verdict-desc" style="margin:0; font-size:14px;"></p>
         </div>
       </div>
-
-      <div class="results-actions">
-        <button class="action-btn" id="copy-report-btn">
-          <svg width="13" height="13" viewBox="0 0 24 24" fill="none"><rect x="9" y="9" width="13" height="13" rx="2" stroke="currentColor" stroke-width="1.8"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" stroke="currentColor" stroke-width="1.8"/></svg>
-          Copy Report
-        </button>
-        <button class="action-btn" id="recheck-btn">
-          <svg width="13" height="13" viewBox="0 0 24 24" fill="none"><path d="M1 4v6h6M23 20v-6h-6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><path d="M20.49 9A9 9 0 0 0 5.64 5.64L1 10m22 4-4.64 4.36A9 9 0 0 1 3.51 15" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
-          Re-check
-        </button>
+      
+      <div id="issues-container"></div>
+      
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Component</th>
+              <th>Role</th>
+              <th>Status</th>
+            </tr>
+          </thead>
+          <tbody id="components-tbody">
+          </tbody>
+        </table>
       </div>
-
-      <div class="all-clear" id="all-clear" hidden>
-        <span class="all-clear-icon">✅</span>
-        <div>
-          <div class="all-clear-title">No critical issues or warnings found</div>
-          <div class="all-clear-sub">Your build looks electrically sound. See improvement suggestions below.</div>
-        </div>
-      </div>
-
-      <div class="results-section" id="critical-section" hidden>
-        <div class="section-divider">
-          <div class="sd-line"></div>
-          <span class="sd-label" style="color:#fca5a5">Will Break / Damage</span>
-          <span class="sd-count" style="background:var(--red-soft);border-color:rgba(239,68,68,0.3);color:#fca5a5" id="critical-count">0</span>
-          <div class="sd-line"></div>
-        </div>
-        <div id="critical-list"></div>
-      </div>
-
-      <div class="results-section" id="warning-section" hidden>
-        <div class="section-divider">
-          <div class="sd-line"></div>
-          <span class="sd-label" style="color:#fcd34d">May Cause Issues</span>
-          <span class="sd-count" style="background:var(--amber-soft);border-color:rgba(245,158,11,0.3);color:#fcd34d" id="warning-count">0</span>
-          <div class="sd-line"></div>
-        </div>
-        <div id="warning-list"></div>
-      </div>
-
-      <div class="results-section" id="improvement-section" hidden>
-        <div class="section-divider">
-          <div class="sd-line"></div>
-          <span class="sd-label" style="color:#93c5fd">Performance Improvements</span>
-          <span class="sd-count" style="background:var(--blue-soft);border-color:rgba(59,130,246,0.3);color:#93c5fd" id="improvement-count">0</span>
-          <div class="sd-line"></div>
-        </div>
-        <div id="improvement-list"></div>
-      </div>
-
-      <div class="results-section" id="comp-section" hidden>
-        <div class="section-divider">
-          <div class="sd-line"></div>
-          <span class="sd-label" style="color:var(--text-3)">Component Status</span>
-          <div class="sd-line"></div>
-        </div>
-        <div class="comp-table" id="comp-table">
-          <div class="comp-table-head">
-            <span>Component</span><span>Status</span><span>Notes</span>
-          </div>
-          <div id="comp-table-body"></div>
-        </div>
-      </div>
-
+      
     </div>
-  </section>
+    
+  </div>
+
 </div>
 
 <script>
-  let selectedRobotType = "";
-  let lastData = null;
-  const $ = id => document.getElementById(id);
-  const E = {
-    brainSlot:$("brain-slot"),powerSlot:$("power-slot"),driverSlot:$("driver-slot"),
-    driverBody:$("driver-body"),driverToggle:$("driver-toggle"),driverLbl:$("driver-toggle-lbl"),
-    motorsList:$("motors-list"),sensorsList:$("sensors-list"),commsList:$("comms-list"),
-    runBtn:$("run-btn"),runLabel:$("run-label"),runSpinner:$("run-spinner"),
-    emptyState:$("empty-state"),loadingState:$("loading-state"),
-    errorState:$("error-state"),errorDetail:$("error-detail"),retryBtn:$("retry-btn"),
-    resultsContent:$("results-content"),
-    gaugeArc:$("gauge-arc"),gaugeScore:$("gauge-score"),
-    verdictBadge:$("verdict-badge"),verdictDot:$("verdict-dot"),verdictText:$("verdict-text"),
-    scoreSummary:$("score-summary"),
-    criticalList:$("critical-list"),warningList:$("warning-list"),improvementList:$("improvement-list"),
-    compTableBody:$("comp-table-body"),
-    motorsCount:$("motors-count"),sensorsCount:$("sensors-count"),commsCount:$("comms-count"),
-  };
+const state = {
+  brain: null,
+  power: null,
+  driver: null,
+  motors: [],
+  sensors: []
+};
 
-  function goToStep(n) {
-    document.querySelectorAll(".step-panel").forEach((p,i)=>p.classList.toggle("active",i+1===n));
-    document.querySelectorAll(".step-dot").forEach((d,i)=>{
-      d.classList.toggle("active",i+1===n);
-      d.classList.toggle("done",i+1<n);
-    });
-    $("step-conn").classList.toggle("done",n>1);
-    $("step-num-1").textContent = n>1 ? "✓" : "1";
-  }
+// SVG Icons
+const icons = {
+  x: '<svg class="icon" viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>',
+  alert: '<svg class="icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>',
+  check: '<svg class="icon" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>',
+  tool: '<svg class="icon" viewBox="0 0 24 24"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg>'
+};
 
-  function selectType(card) {
-    document.querySelectorAll(".robot-type-card").forEach(c=>c.classList.remove("selected"));
-    card.classList.add("selected");
-    selectedRobotType = card.dataset.type;
-  }
-
-  function makeRow(dlId, placeholder, removable=true) {
-    const row = document.createElement("div"); row.className="comp-row";
-    const wrap = document.createElement("div"); wrap.className="comp-input-wrap";
-    const input = document.createElement("input");
-    input.type="text"; input.className="comp-input"; input.placeholder=placeholder;
-    if(dlId) input.setAttribute("list",dlId);
-    wrap.appendChild(input); row.appendChild(wrap);
-    if(removable){
-      const rm = document.createElement("button");
-      rm.type="button"; rm.className="comp-remove"; rm.title="Remove";
-      rm.innerHTML=`<svg width="13" height="13" viewBox="0 0 24 24" fill="none"><path d="M7 7l10 10M17 7 7 17" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>`;
-      rm.addEventListener("click",()=>{row.remove();updateCounts();});
-      row.appendChild(rm);
+// UI Functions
+function renderList(key, isSingle) {
+  const container = document.getElementById(`list-${key}`);
+  container.innerHTML = '';
+  
+  if (isSingle) {
+    if (state[key]) {
+      container.innerHTML = `<div class="item-row">
+        <span>${state[key]}</span>
+        <button class="item-remove" onclick="removeSingle('${key}')">${icons.x}</button>
+      </div>`;
     }
-    return row;
-  }
-
-  function getVal(row){return row.querySelector(".comp-input").value.trim()||null;}
-
-  function updateCounts(){
-    const mc=E.motorsList.querySelectorAll(".comp-row").length; E.motorsCount.textContent=mc;
-    const sc=E.sensorsList.querySelectorAll(".comp-row").length; E.sensorsCount.textContent=sc; E.sensorsCount.hidden=sc===0;
-    const cc=E.commsList.querySelectorAll(".comp-row").length; E.commsCount.textContent=cc; E.commsCount.hidden=cc===0;
-  }
-
-  function addRow(list,dlId,placeholder,def=""){
-    const row=makeRow(dlId,placeholder,true);
-    if(def) row.querySelector(".comp-input").value=def;
-    row.style.cssText="opacity:0;transform:translateY(-8px)";
-    list.appendChild(row);
-    requestAnimationFrame(()=>{row.style.transition="opacity 200ms,transform 200ms";row.style.opacity="1";row.style.transform="translateY(0)";});
-    updateCounts();
-  }
-
-  E.driverToggle.addEventListener("change",()=>{
-    const on=E.driverToggle.checked;
-    E.driverBody.hidden=!on;
-    E.driverLbl.textContent=on?"On":"Off";
-  });
-
-  $("add-motor-btn").addEventListener("click", ()=>addRow(E.motorsList,  "dl-motor",  "e.g. N20 Gear Motor, SG90 Servo, NEMA 17 Stepper…"));
-  $("add-sensor-btn").addEventListener("click",()=>addRow(E.sensorsList, "dl-sensor", "e.g. HC-SR04 Ultrasonic, MPU-6050 IMU…"));
-  $("add-comm-btn").addEventListener("click",  ()=>addRow(E.commsList,   "dl-comm",   "e.g. HC-05 Bluetooth, NRF24L01…"));
-
-  function initForm(){
-    E.brainSlot.appendChild(makeRow("dl-brain",  "e.g. Arduino Uno, ESP32, Raspberry Pi Pico…",false));
-    E.powerSlot.appendChild(makeRow("dl-power",  "e.g. 2S LiPo (7.4V), 9V battery, 5V USB bank…",false));
-    E.driverSlot.appendChild(makeRow("dl-driver","e.g. L298N, A4988 Stepper Driver, ESC 30A…",false));
-    addRow(E.motorsList,"dl-motor","e.g. N20 Gear Motor, SG90 Servo, NEMA 17 Stepper…");
-  }
-
-  function collectData(){
-    return {
-      brain:   getVal(E.brainSlot.querySelector(".comp-row")),
-      power:   getVal(E.powerSlot.querySelector(".comp-row")),
-      motorDriver: E.driverToggle.checked ? (getVal(E.driverSlot.querySelector(".comp-row"))||"None") : "None",
-      motors:  [...E.motorsList.querySelectorAll(".comp-row")].map(getVal).filter(Boolean),
-      sensors: [...E.sensorsList.querySelectorAll(".comp-row")].map(getVal).filter(Boolean),
-      comms:   [...E.commsList.querySelectorAll(".comp-row")].map(getVal).filter(Boolean),
-      robotType:   selectedRobotType,
-      projectDesc: $("project-desc").value.trim(),
-    };
-  }
-
-  function setState(state,detail=""){
-    E.emptyState.hidden      = state!=="empty";
-    E.loadingState.hidden    = state!=="loading";
-    E.errorState.hidden      = state!=="error";
-    E.resultsContent.hidden  = state!=="results";
-    E.runBtn.disabled        = state==="loading";
-    E.runBtn.classList.toggle("loading",state==="loading");
-    E.runLabel.textContent   = state==="loading" ? "Analyzing…" : "Run BotCheck";
-    E.runSpinner.hidden      = state!=="loading";
-    if(state==="error") E.errorDetail.textContent=detail||"Check your API key and network.";
-  }
-
-  function animateGauge(score){
-    const circ=2*Math.PI*47;
-    const color=score>=75?"#10b981":score>=45?"#f59e0b":"#ef4444";
-    E.gaugeArc.style.stroke=color;
-    let start=null;
-    function step(ts){
-      if(!start)start=ts;
-      const p=Math.min((ts-start)/900,1);
-      const ep=1-Math.pow(1-p,3);
-      E.gaugeScore.textContent=Math.round(ep*score);
-      E.gaugeArc.style.strokeDashoffset=circ*(1-ep*score/100);
-      if(p<1)requestAnimationFrame(step);
-    }
-    requestAnimationFrame(step);
-  }
-
-  function renderVerdict(v){
-    const M={
-      READY_TO_BUILD: {cls:"verdict-ready", dot:"#10b981",label:"READY TO BUILD"},
-      NEEDS_REVIEW:   {cls:"verdict-review",dot:"#f59e0b",label:"NEEDS REVIEW"},
-      NOT_RECOMMENDED:{cls:"verdict-bad",   dot:"#ef4444",label:"NOT RECOMMENDED"},
-    };
-    const m=M[v]??M.NEEDS_REVIEW;
-    E.verdictBadge.className=`verdict-badge ${m.cls}`;
-    E.verdictDot.style.background=m.dot;
-    E.verdictText.textContent=m.label;
-  }
-
-  const SICON={
-    CRITICAL:`<svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0Z" stroke="currentColor" stroke-width="1.8"/><path d="M12 9v4M12 17h.01" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>`,
-    WARNING:`<svg width="16" height="16" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="1.8"/><path d="M12 8v5M12 16h.01" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>`,
-    IMPROVEMENT:`<svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>`,
-  };
-  const FICON=`<svg width="13" height="13" viewBox="0 0 24 24" fill="none"><path d="m14.7 6.3 3-3a4.8 4.8 0 0 1-6.2 6.2l-7.2 7.2a2.1 2.1 0 1 0 3 3l7.2-7.2a4.8 4.8 0 0 1 6.2-6.2l-3 3-3-3Z" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>`;
-
-  function makeIssueCard(issue,delay){
-    const sev=(issue.severity||"WARNING").toUpperCase();
-    const card=document.createElement("div");
-    card.className=`issue-card issue-${sev.toLowerCase()}`;
-    card.style.animationDelay=`${delay}ms`;
-    const iw=document.createElement("div"); iw.className="issue-icon-wrap";
-    iw.innerHTML=SICON[sev]||SICON.WARNING;
-    const body=document.createElement("div"); body.className="issue-body";
-    body.innerHTML=`<div class="issue-category">${esc(issue.category||"")}</div><div class="issue-title">${esc(issue.title||"")}</div><div class="issue-detail">${esc(issue.detail||"")}</div>`;
-    if(issue.fix){
-      const fx=document.createElement("div"); fx.className="issue-fix";
-      fx.innerHTML=`<span class="issue-fix-icon">${FICON}</span><span>${esc(issue.fix)}</span>`;
-      body.appendChild(fx);
-    }
-    card.appendChild(iw); card.appendChild(body);
-    return card;
-  }
-
-  const SCLS={OK:"csb-ok",WARNING:"csb-warning",CRITICAL:"csb-critical",UNKNOWN:"csb-unknown"};
-  const SDOT={OK:"#10b981",WARNING:"#f59e0b",CRITICAL:"#ef4444",UNKNOWN:"#475569"};
-
-  function makeCompRow(comp){
-    const st=(comp.status||"UNKNOWN").toUpperCase();
-    const row=document.createElement("div"); row.className="comp-table-row";
-    row.innerHTML=`
-      <div><div class="comp-name">${esc(comp.name||"")}</div><div class="comp-role">${esc(comp.role||"")}</div></div>
-      <div style="padding-top:1px"><span class="comp-status-badge ${SCLS[st]||"csb-unknown"}"><span class="csb-dot" style="background:${SDOT[st]||"#475569"}"></span>${st}</span></div>
-      <div class="comp-note">${esc(comp.note||"")}</div>`;
-    return row;
-  }
-
-  function renderResults(r){
-    const {overall={},issues=[],components=[]}=r;
-    animateGauge(overall.score??0);
-    renderVerdict(overall.verdict);
-    E.scoreSummary.textContent=overall.summary||"";
-
-    const critical=issues.filter(i=>(i.severity||"").toUpperCase()==="CRITICAL");
-    const warnings=issues.filter(i=>(i.severity||"").toUpperCase()==="WARNING");
-    const improv  =issues.filter(i=>(i.severity||"").toUpperCase()==="IMPROVEMENT");
-
-    $("critical-count").textContent=critical.length;
-    $("warning-count").textContent=warnings.length;
-    $("improvement-count").textContent=improv.length;
-    $("critical-section").hidden=critical.length===0;
-    $("warning-section").hidden=warnings.length===0;
-    $("improvement-section").hidden=improv.length===0;
-    $("all-clear").hidden=critical.length>0||warnings.length>0;
-
-    E.criticalList.innerHTML="";
-    E.warningList.innerHTML="";
-    E.improvementList.innerHTML="";
-
-    let d=0;
-    critical.forEach(i=>{E.criticalList.appendChild(makeIssueCard(i,d));d+=70;});
-    warnings.forEach(i=>{E.warningList.appendChild(makeIssueCard(i,d));d+=70;});
-    improv.forEach(i=>{E.improvementList.appendChild(makeIssueCard(i,d));d+=70;});
-
-    E.compTableBody.innerHTML="";
-    $("comp-section").hidden=components.length===0;
-    if(components.length>0){
-      $("comp-table").style.animationDelay=`${d+100}ms`;
-      components.forEach(c=>E.compTableBody.appendChild(makeCompRow(c)));
-    }
-  }
-
-  function copyReport(){
-    const d=collectData();
-    let t=`BotCheck Report\n${"─".repeat(38)}\n`;
-    if(d.robotType) t+=`Type: ${d.robotType}\n`;
-    if(d.projectDesc) t+=`Project: ${d.projectDesc}\n`;
-    t+=`\nComponents:\n`;
-    if(d.brain) t+=`  🧠 Brain:  ${d.brain}\n`;
-    if(d.power) t+=`  ⚡ Power:  ${d.power}\n`;
-    if(d.motorDriver!=="None") t+=`  🔌 Driver: ${d.motorDriver}\n`;
-    d.motors.forEach(m=>t+=`  ⚙️  Motor:  ${m}\n`);
-    d.sensors.forEach(s=>t+=`  📡 Sensor: ${s}\n`);
-    d.comms.forEach(c=>t+=`  📶 Comm:   ${c}\n`);
-    navigator.clipboard.writeText(t).then(()=>{
-      const btn=$("copy-report-btn");
-      const orig=btn.innerHTML;
-      btn.textContent="✓ Copied!";
-      setTimeout(()=>btn.innerHTML=orig,2000);
+  } else {
+    state[key].forEach((item, index) => {
+      container.innerHTML += `<div class="item-row">
+        <span>${item}</span>
+        <button class="item-remove" onclick="removeMulti('${key}', ${index})">${icons.x}</button>
+      </div>`;
     });
   }
+}
 
-  function esc(s){return String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");}
+function setSingle(key, val) {
+  state[key] = val;
+  document.getElementById(`in-${key}`).value = '';
+  renderList(key, true);
+}
+function removeSingle(key) {
+  state[key] = null;
+  renderList(key, true);
+}
+function addSingleItem(key) {
+  const val = document.getElementById(`in-${key}`).value.trim();
+  if (val) setSingle(key, val);
+}
 
-  async function runCheck(){
-    const data=collectData();
-    if(!data.brain){alert("Please enter your microcontroller/brain in Step 2.");goToStep(2);return;}
-    if(!data.power){alert("Please enter your power source in Step 2.");goToStep(2);return;}
-    if(data.motors.length===0){alert("Please add at least one motor in Step 2.");goToStep(2);return;}
-    lastData=data;
-    setState("loading");
-    if(window.innerWidth<=800) $("resultsPanel").scrollIntoView({behavior:"smooth"});
-    try{
-      const res=await fetch("/api/validate",{
-        method:"POST",
-        headers:{"Content-Type":"application/json"},
-        body:JSON.stringify(data),
-      });
-      const json=await res.json();
-      if(!res.ok) throw new Error(json.error||"API request failed");
-      setState("results");
-      renderResults(json);
-    }catch(err){
-      setState("error",err.message);
-    }
+function addMulti(key, val) {
+  state[key].push(val);
+  document.getElementById(`in-${key}`).value = '';
+  renderList(key, false);
+}
+function removeMulti(key, idx) {
+  state[key].splice(idx, 1);
+  renderList(key, false);
+}
+function addMultiItem(key) {
+  const val = document.getElementById(`in-${key}`).value.trim();
+  if (val) addMulti(key, val);
+}
+
+// Default items for quick testing
+setSingle('brain', 'Arduino Uno');
+setSingle('power', '9V Battery');
+addMulti('motors', '2x TT Gear Motors');
+
+// Analysis
+document.getElementById('btn-analyze').addEventListener('click', async () => {
+  if (!state.brain || !state.power || state.motors.length === 0) {
+    alert('Brain, Power, and at least 1 Motor are required.');
+    return;
   }
+  
+  document.getElementById('state-empty').style.display = 'none';
+  document.getElementById('state-results').style.display = 'none';
+  document.getElementById('state-loading').style.display = 'block';
+  document.getElementById('btn-analyze').disabled = true;
+  
+  const payload = {
+    robotType: document.getElementById('proj-type').value,
+    projectDesc: document.getElementById('proj-desc').value,
+    brain: state.brain,
+    power: state.power,
+    motorDriver: state.driver || 'None',
+    motors: state.motors,
+    sensors: state.sensors,
+    comms: []
+  };
 
-  E.runBtn.addEventListener("click",runCheck);
-  E.retryBtn.addEventListener("click",runCheck);
-  $("copy-report-btn").addEventListener("click",copyReport);
-  $("recheck-btn").addEventListener("click",runCheck);
+  try {
+    const res = await fetch('/api/validate', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+    
+    if (!res.ok) throw new Error(await res.text());
+    
+    const data = await res.json();
+    renderResults(data);
+    
+  } catch (err) {
+    alert('Error analyzing build: ' + err.message);
+    document.getElementById('state-loading').style.display = 'none';
+    document.getElementById('state-empty').style.display = 'block';
+  } finally {
+    document.getElementById('btn-analyze').disabled = false;
+  }
+});
 
-  initForm();
-  setState("empty");
+function renderResults(data) {
+  document.getElementById('state-loading').style.display = 'none';
+  document.getElementById('state-results').style.display = 'block';
+  
+  // Score
+  const score = data.overall.score || 0;
+  document.getElementById('score-val').textContent = score;
+  const offset = 251 - (251 * score) / 100;
+  setTimeout(() => {
+    const arc = document.getElementById('score-arc');
+    arc.style.strokeDashoffset = offset;
+    if (score < 50) arc.style.stroke = 'var(--error)';
+    else if (score < 80) arc.style.stroke = 'var(--warn)';
+    else arc.style.stroke = 'var(--success)';
+  }, 50);
+  
+  document.getElementById('verdict-title').textContent = data.overall.verdict.replace(/_/g, ' ');
+  document.getElementById('verdict-desc').textContent = data.overall.summary;
+  
+  // Issues
+  const issuesContainer = document.getElementById('issues-container');
+  issuesContainer.innerHTML = '';
+  
+  if (data.issues && data.issues.length > 0) {
+    data.issues.forEach(issue => {
+      const sev = issue.severity.toLowerCase();
+      let html = `
+        <div class="issue sev-${sev}">
+          <div class="issue-icon">${sev === 'improvement' ? icons.check : icons.alert}</div>
+          <div>
+            <div class="issue-title">${issue.category}: ${issue.title}</div>
+            <div class="issue-desc">${issue.detail}</div>
+            ${issue.fix ? `<div class="issue-fix"><div>${icons.tool}</div><div>${issue.fix}</div></div>` : ''}
+          </div>
+        </div>
+      `;
+      issuesContainer.innerHTML += html;
+    });
+  } else {
+    issuesContainer.innerHTML = '<div class="issue" style="background:var(--bg-muted);justify-content:center;color:var(--fg-muted)">No issues found! Great job.</div>';
+  }
+  
+  // Components Table
+  const tbody = document.getElementById('components-tbody');
+  tbody.innerHTML = '';
+  if (data.components) {
+    data.components.forEach(comp => {
+      const st = (comp.status || 'UNKNOWN').toLowerCase();
+      tbody.innerHTML += `
+        <tr>
+          <td><strong>${comp.name}</strong><br><span style="color:var(--fg-muted);font-size:12px">${comp.note || ''}</span></td>
+          <td>${comp.role}</td>
+          <td><span class="badge ${st}">${st}</span></td>
+        </tr>
+      `;
+    });
+  }
+}
 </script>
+
 </body>
 </html>
