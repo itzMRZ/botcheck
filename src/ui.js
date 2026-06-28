@@ -25,11 +25,11 @@ const hardwareOptions = {
     { id: 'L298N Driver', name: 'L298N Driver', icon: icons.cpu }
   ],
   sensors: [
-    { id: 'TCRT5000', name: 'TCRT5000', icon: icons.search },
-    { id: 'Pololu QTR-8A', name: 'QTR-8A Array', icon: icons.search },
-    { id: 'HC-SR04', name: 'HC-SR04', icon: icons.search },
-    { id: 'MPU6050', name: 'MPU6050', icon: icons.search },
-    { id: 'Lidar RP', name: 'Lidar', icon: icons.search }
+    { id: 'TCRT5000', name: 'TCRT5000', icon: icons.sensor },
+    { id: 'Pololu QTR-8A', name: 'QTR-8A Array', icon: icons.sensor },
+    { id: 'HC-SR04', name: 'HC-SR04', icon: icons.sensor },
+    { id: 'MPU6050', name: 'MPU6050', icon: icons.sensor },
+    { id: 'Lidar RP', name: 'Lidar', icon: icons.sensor }
   ]
 };
 
@@ -107,7 +107,7 @@ function renderGrid(containerId, options, stateKey, isSingle) {
       // Add a new static card for this custom entry
       const newCard = document.createElement('div');
       newCard.className = 'comp-card selected';
-      let iconToUse = icons.search;
+      let iconToUse = icons.sensor;
       if (stateKey === 'brain') iconToUse = icons.cpu;
       if (stateKey === 'power') iconToUse = icons.battery;
       if (stateKey === 'motors') iconToUse = icons.motor;

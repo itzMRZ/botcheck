@@ -11,32 +11,30 @@
   <body>
     <div class="app-layout">
       <!-- Navbar -->
-      <header class="navbar">
+      <nav class="navbar">
         <div class="nav-brand">
           <svg class="icon brand-icon" viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="10" rx="2"/><circle cx="12" cy="5" r="2"/><path d="M12 7v4"/><line x1="8" y1="16" x2="8" y2="16"/><line x1="16" y1="16" x2="16" y2="16"/></svg>
           <h1>BotCheck</h1>
         </div>
-        <div class="nav-links">
-          <a href="#" class="active">Validator</a>
-          <a href="#">Docs</a>
-          <a href="#">Settings</a>
-        </div>
-      </header>
+      </nav>
 
       <main class="main-content">
         <!-- Configuration Column -->
         <section class="config-panel">
           <div class="panel-header">
             <h2>Hardware Configuration</h2>
-            <p class="subtitle">Select your robot's components to validate compatibility.</p>
+            <p class="subtitle">Select components to validate architecture & compatibility</p>
           </div>
 
           <div class="form-group">
-            <label>Robot Archetype</label>
+            <label>
+              <svg class="icon header-icon" viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="10" rx="2"/><circle cx="12" cy="5" r="2"/><path d="M12 7v4"/><line x1="8" y1="16" x2="8" y2="16"/><line x1="16" y1="16" x2="16" y2="16"/></svg>
+              Robot Archetype
+            </label>
             <div class="select-wrapper">
               <select id="proj-type" class="sleek-input">
+                <option value="Line Follower Robot" selected>Line Follower Robot (LFR)</option>
                 <option value="Differential Drive">Differential Drive Base</option>
-                <option value="Line Follower Robot">Line Follower Robot (LFR)</option>
                 <option value="Soccerbot">Soccerbot</option>
                 <option value="Maze Solver">Maze Solver</option>
                 <option value="Drone">Quadrotor Drone</option>
@@ -48,14 +46,20 @@
           </div>
 
           <div class="form-group">
-            <label>Target Speed / Specific Requirements</label>
+            <label>
+              <svg class="icon header-icon" viewBox="0 0 24 24"><path d="M12 22a10 10 0 1 1 0-20 10 10 0 0 1 0 20z"/><path d="M12 18a6 6 0 1 1 0-12 6 6 0 0 1 0 12z"/><path d="M12 12l3-3"/></svg>
+              Target Speed / Specific Requirements
+            </label>
             <input type="text" id="target-speed" class="sleek-input" placeholder="e.g. 500 RPM, needs to push 2kg..." />
           </div>
 
           <!-- Component Pickers -->
           <div class="picker-section">
             <div class="picker-header">
-              <label>Logic Unit</label>
+              <label>
+                <svg class="icon header-icon" viewBox="0 0 24 24"><rect x="4" y="4" width="16" height="16" rx="2" ry="2"/><rect x="9" y="9" width="6" height="6"/><line x1="9" y1="1" x2="9" y2="4"/><line x1="15" y1="1" x2="15" y2="4"/><line x1="9" y1="20" x2="9" y2="23"/><line x1="15" y1="20" x2="15" y2="23"/><line x1="20" y1="9" x2="23" y2="9"/><line x1="20" y1="14" x2="23" y2="14"/><line x1="1" y1="9" x2="4" y2="9"/><line x1="1" y1="14" x2="4" y2="14"/></svg>
+                Logic Unit
+              </label>
               <span class="required-badge">Required</span>
             </div>
             <div class="card-grid" id="grid-brain">
@@ -65,7 +69,10 @@
 
           <div class="picker-section">
             <div class="picker-header">
-              <label>Power Cell</label>
+              <label>
+                <svg class="icon header-icon" viewBox="0 0 24 24"><rect x="1" y="6" width="18" height="12" rx="2" ry="2"/><line x1="23" y1="13" x2="23" y2="11"/></svg>
+                Power Cell
+              </label>
               <span class="required-badge">Required</span>
             </div>
             <div class="card-grid" id="grid-power">
@@ -75,7 +82,10 @@
 
           <div class="picker-section">
             <div class="picker-header">
-              <label>Actuators</label>
+              <label>
+                <svg class="icon header-icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+                Actuators
+              </label>
               <span class="required-badge">Required</span>
             </div>
             <div class="card-grid" id="grid-motors">
@@ -85,7 +95,10 @@
 
           <div class="picker-section">
             <div class="picker-header">
-              <label>Sensors & Extras</label>
+              <label>
+                <svg class="icon header-icon" viewBox="0 0 24 24"><path d="M12 12m-3 0a3 3 0 1 0 6 0a3 3 0 1 0 -6 0"/><path d="M12 2v2"/><path d="M12 20v2"/><path d="M22 12h-2"/><path d="M4 12h-2"/><path d="M19.07 4.93l-1.41 1.41"/><path d="M6.34 17.66l-1.41 1.41"/><path d="M19.07 19.07l-1.41 -1.41"/><path d="M6.34 6.34l-1.41 -1.41"/></svg>
+                Sensors & Extras
+              </label>
               <span class="required-badge" style="background: transparent; color: var(--text-secondary); border: none;">Optional</span>
             </div>
             <div class="card-grid" id="grid-sensors">

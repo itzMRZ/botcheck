@@ -1,10 +1,33 @@
 import './style.css';
-import { state } from './state.js';
+import { state, applyPreset } from './state.js';
 import { initPickers, renderResults } from './ui.js';
 import { validateHardware } from './api.js';
 
-// Initialize component picker grids on load
-initPickers();
+const presets = {
+  "Line Follower Robot": { brain: "Arduino Nano", power: "7.4V LiPo", motors: ["2x TT Gear Motors", "L298N Driver"], sensors: ["Pololu QTR-8A"] },
+  "Differential Drive": { brain: "Arduino Uno", power: "12V LiPo", motors: ["2x TT Gear Motors", "L298N Driver"], sensors: ["HC-SR04"] },
+  "Soccerbot": { brain: "ESP32", power: "12V LiPo", motors: ["NEMA 17 Steppers", "L298N Driver"], sensors: ["TCRT5000"] },
+  "Maze Solver": { brain: "Arduino Nano", power: "7.4V LiPo", motors: ["2x TT Gear Motors"], sensors: ["HC-SR04", "MPU6050"] },
+  "Drone": { brain: "ESP32", power: "12V LiPo", motors: ["NEMA 17 Steppers"], sensors: ["MPU6050"] },
+  "Arm": { brain: "Arduino Mega", power: "9V Battery", motors: ["MG996R Servos"], sensors: [] },
+  "Bipedal": { brain: "Arduino Mega", power: "7.4V LiPo", motors: ["MG996R Servos"], sensors: ["MPU6050"] },
+  "Combat Bot": { brain: "ESP32", power: "18650 Pack", motors: ["NEMA 17 Steppers", "L298N Driver"], sensors: [] }
+};
+
+document.addEventListener('DOMContentLoaded', () => {
+  // Apply initial preset
+  applyPreset(presets["Line Follower Robot"]);
+  initPickers();
+
+  const projTypeSelect = document.getElementById('proj-type');
+  projTypeSelect.addEventListener('change', (e) => {
+    const p = presets[e.target.value];
+    if (p) {
+      applyPreset(p);
+      initPickers();
+    }
+  });
+});
 
 document.getElementById('btn-analyze').addEventListener('click', async () => {
   if (!state.brain || !state.power || state.motors.length === 0) {

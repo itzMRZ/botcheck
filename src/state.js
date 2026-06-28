@@ -18,3 +18,10 @@ export function toggleMulti(key, val) {
     state[key].push(val);
   }
 }
+
+export function applyPreset(preset) {
+  if (preset.brain) state.brain = preset.brain;
+  if (preset.power) state.power = preset.power;
+  if (preset.motors) state.motors = [...preset.motors];
+  if (preset.sensors) state.sensors = [...preset.sensors];
+}

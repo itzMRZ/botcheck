@@ -140,6 +140,15 @@ body {
   font-size: 13px;
   font-weight: 600;
   color: var(--text-primary);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.header-icon {
+  width: 16px;
+  height: 16px;
+  color: var(--text-secondary);
 }
 
 .select-wrapper { position: relative; }
