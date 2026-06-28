@@ -115,7 +115,7 @@ export default async function handler(req, res) {
     const {
       brain,
       power,
-      motorDriver = "None",
+      drivers = [],
       motors  = [],
       sensors = [],
       comms   = [],
@@ -130,7 +130,7 @@ export default async function handler(req, res) {
       });
     }
 
-    const userMsg = buildMessage({ brain, power, motorDriver, motors, sensors, comms, robotType, projectDesc });
+    const userMsg = buildMessage({ brain, power, drivers, motors, sensors, comms, robotType, projectDesc });
 
     const response = await fetch("https://api.openai.com/v1/chat/completions", {
       method: "POST",
@@ -169,20 +169,23 @@ export default async function handler(req, res) {
   }
 }
 
-function buildMessage({ brain, power, motorDriver, motors, sensors, comms, robotType, projectDesc }) {
+function buildMessage({ brain, power, drivers, motors, sensors, comms, robotType, projectDesc }) {
   const lines = [];
 
   if (robotType || projectDesc) {
     lines.push("=== PROJECT CONTEXT ===");
     if (robotType)   lines.push(`Type: ${robotType}`);
-    if (projectDesc) lines.push(`Description: ${projectDesc}`);
+    if (projectDesc) lines.push(`Description/Target Speed: ${projectDesc}`);
     lines.push("");
   }
 
   lines.push("=== BUILD SPECIFICATION ===");
   lines.push(`Brain / Controller: ${brain}`);
   lines.push(`Power Source: ${power}`);
-  lines.push(`Motor Driver / ESC: ${motorDriver}`);
+
+  lines.push(`\nMotor Controllers / Drivers (${drivers.length || "none"}):`);
+  if (drivers.length === 0) lines.push("  None");
+  else drivers.forEach((d, i) => lines.push(`  ${i + 1}. ${d}`));
 
   lines.push(`\nMotors (${motors.length}):`);
   motors.forEach((m, i) => lines.push(`  ${i + 1}. ${m}`));

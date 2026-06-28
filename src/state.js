@@ -1,7 +1,7 @@
 export const state = {
   brain: 'Arduino Uno',
   power: '9V Battery',
-  driver: null,
+  drivers: [],
   motors: ['2x TT Gear Motors'],
   sensors: []
 };
@@ -22,6 +22,7 @@ export function toggleMulti(key, val) {
 export function applyPreset(preset) {
   if (preset.brain) state.brain = preset.brain;
   if (preset.power) state.power = preset.power;
+  if (preset.drivers) state.drivers = [...preset.drivers];
   if (preset.motors) state.motors = [...preset.motors];
   if (preset.sensors) state.sensors = [...preset.sensors];
 }

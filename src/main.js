@@ -4,14 +4,14 @@ import { initPickers, renderResults } from './ui.js';
 import { validateHardware } from './api.js';
 
 const presets = {
-  "Line Follower Robot": { brain: "Arduino Nano", power: "7.4V LiPo", motors: ["2x TT Gear Motors", "L298N Driver"], sensors: ["Pololu QTR-8A"] },
-  "Differential Drive": { brain: "Arduino Uno", power: "12V LiPo", motors: ["2x TT Gear Motors", "L298N Driver"], sensors: ["HC-SR04"] },
-  "Soccerbot": { brain: "ESP32", power: "12V LiPo", motors: ["NEMA 17 Steppers", "L298N Driver"], sensors: ["TCRT5000"] },
-  "Maze Solver": { brain: "Arduino Nano", power: "7.4V LiPo", motors: ["2x TT Gear Motors"], sensors: ["HC-SR04", "MPU6050"] },
-  "Drone": { brain: "ESP32", power: "12V LiPo", motors: ["NEMA 17 Steppers"], sensors: ["MPU6050"] },
-  "Arm": { brain: "Arduino Mega", power: "9V Battery", motors: ["MG996R Servos"], sensors: [] },
-  "Bipedal": { brain: "Arduino Mega", power: "7.4V LiPo", motors: ["MG996R Servos"], sensors: ["MPU6050"] },
-  "Combat Bot": { brain: "ESP32", power: "18650 Pack", motors: ["NEMA 17 Steppers", "L298N Driver"], sensors: [] }
+  "Line Follower Robot": { brain: "Arduino Nano", power: "7.4V LiPo", drivers: ["TB6612FNG"], motors: ["N20 Micro Gear"], sensors: ["Pololu QTR-8A"] },
+  "Differential Drive": { brain: "Arduino Uno", power: "12V LiPo", drivers: ["L298N Driver"], motors: ["JGA25 DC Motor"], sensors: ["HC-SR04"] },
+  "Soccerbot": { brain: "ESP32", power: "11.1V 3S LiPo", drivers: ["BTS7960"], motors: ["JGA25 DC Motor"], sensors: ["MPU6050"] },
+  "Maze Solver": { brain: "Teensy 4.1", power: "7.4V LiPo", drivers: ["TB6612FNG"], motors: ["N20 Micro Gear"], sensors: ["HC-SR04", "MPU6050"] },
+  "Drone": { brain: "ESP32", power: "11.1V 3S LiPo", drivers: ["30A ESC"], motors: ["2204 BLDC"], sensors: ["MPU6050"] },
+  "Arm": { brain: "Arduino Mega", power: "7.4V LiPo", drivers: [], motors: ["MG996R Servos"], sensors: [] },
+  "Bipedal": { brain: "Arduino Mega", power: "7.4V LiPo", drivers: [], motors: ["MG996R Servos"], sensors: ["MPU6050"] },
+  "Combat Bot": { brain: "ESP32", power: "18650 Pack", drivers: ["BTS7960"], motors: ["JGA25 DC Motor"], sensors: [] }
 };
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -31,7 +31,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
 document.getElementById('btn-analyze').addEventListener('click', async () => {
   if (!state.brain || !state.power || state.motors.length === 0) {
-    alert('Please select at least one Logic Unit, Power Cell, and Actuator.');
+    alert("Please select a logic unit, power cell, and at least one actuator.");
     return;
   }
   
@@ -53,7 +53,7 @@ document.getElementById('btn-analyze').addEventListener('click', async () => {
     projectDesc: document.getElementById('target-speed').value || 'No specific requirements',
     brain: state.brain,
     power: state.power,
-    motorDriver: state.driver || 'None',
+    drivers: state.drivers,
     motors: state.motors,
     sensors: state.sensors,
     comms: []

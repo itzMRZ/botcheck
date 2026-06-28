@@ -17,12 +17,20 @@ const hardwareOptions = {
     { id: 'USB Power Bank', name: 'USB Bank', icon: icons.battery },
     { id: '18650 Pack', name: '18650 Pack', icon: icons.battery }
   ],
+  drivers: [
+    { id: 'TB6612FNG', name: 'TB6612FNG', icon: icons.cpu },
+    { id: 'L298N Driver', name: 'L298N Driver', icon: icons.cpu },
+    { id: 'BTS7960', name: 'BTS7960 (43A)', icon: icons.cpu },
+    { id: '30A ESC', name: '30A ESC', icon: icons.cpu },
+    { id: 'A4988 Stepper', name: 'A4988 Driver', icon: icons.cpu }
+  ],
   motors: [
-    { id: '2x TT Gear Motors', name: 'TT Motors', icon: icons.motor },
+    { id: 'N20 Micro Gear', name: 'N20 Motors', icon: icons.motor },
+    { id: 'JGA25 DC Motor', name: 'JGA25 Motors', icon: icons.motor },
+    { id: '2204 BLDC', name: '2204 BLDC', icon: icons.motor },
     { id: 'NEMA 17 Steppers', name: 'NEMA 17', icon: icons.motor },
     { id: 'SG90 Servos', name: 'SG90 Servos', icon: icons.motor },
-    { id: 'MG996R Servos', name: 'MG996R', icon: icons.motor },
-    { id: 'L298N Driver', name: 'L298N Driver', icon: icons.cpu }
+    { id: 'MG996R Servos', name: 'MG996R', icon: icons.motor }
   ],
   sensors: [
     { id: 'TCRT5000', name: 'TCRT5000', icon: icons.sensor },
@@ -36,6 +44,7 @@ const hardwareOptions = {
 export function initPickers() {
   renderGrid('grid-brain', hardwareOptions.brain, 'brain', true);
   renderGrid('grid-power', hardwareOptions.power, 'power', true);
+  renderGrid('grid-drivers', hardwareOptions.drivers, 'drivers', false);
   renderGrid('grid-motors', hardwareOptions.motors, 'motors', false);
   renderGrid('grid-sensors', hardwareOptions.sensors, 'sensors', false);
 }
@@ -110,6 +119,7 @@ function renderGrid(containerId, options, stateKey, isSingle) {
       let iconToUse = icons.sensor;
       if (stateKey === 'brain') iconToUse = icons.cpu;
       if (stateKey === 'power') iconToUse = icons.battery;
+      if (stateKey === 'drivers') iconToUse = icons.cpu;
       if (stateKey === 'motors') iconToUse = icons.motor;
       
       newCard.innerHTML = `
