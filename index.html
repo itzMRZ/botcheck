@@ -1,466 +1,179 @@
 <!DOCTYPE html>
 <html lang="en">
-<head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>BotCheck - Hardware Validator</title>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
-  <style>
-    :root {
-      --bg: #ffffff;
-      --fg: #171717;
-      --fg-muted: #666666;
-      --border: #eaeaea;
-      --border-hover: #999999;
-      --bg-muted: #fafafa;
-      --accent: #000000;
-      --accent-fg: #ffffff;
-      --radius: 6px;
-      --shadow: 0 4px 14px 0 rgba(0,0,0,0.1);
-      
-      --error: #e00;
-      --error-bg: #fff0f0;
-      --warn: #f5a623;
-      --warn-bg: #fffcf0;
-      --info: #0070f3;
-      --info-bg: #f0f7ff;
-      --success: #0070f3; 
-    }
-    
-    * { box-sizing: border-box; margin: 0; padding: 0; }
-    body { font-family: 'Inter', -apple-system, sans-serif; background: var(--bg); color: var(--fg); line-height: 1.5; font-size: 14px; }
-    
-    /* Layout */
-    .container { max-width: 1200px; margin: 0 auto; padding: 24px; display: grid; grid-template-columns: 1fr 1fr; gap: 32px; min-height: 100vh; }
-    @media (max-width: 900px) { .container { grid-template-columns: 1fr; } }
-    
-    /* Typography */
-    h1 { font-size: 24px; font-weight: 600; letter-spacing: -0.02em; margin-bottom: 8px; display: flex; align-items: center; gap: 8px; }
-    h2 { font-size: 16px; font-weight: 600; margin-bottom: 16px; }
-    p { color: var(--fg-muted); margin-bottom: 16px; }
-    
-    /* Forms */
-    .card { border: 1px solid var(--border); border-radius: var(--radius); padding: 24px; background: var(--bg); margin-bottom: 24px; }
-    .field { margin-bottom: 20px; }
-    .field:last-child { margin-bottom: 0; }
-    label { display: block; font-size: 13px; font-weight: 500; margin-bottom: 8px; color: var(--fg); }
-    input, textarea, select { width: 100%; padding: 10px 12px; border: 1px solid var(--border); border-radius: var(--radius); font-family: inherit; font-size: 14px; background: var(--bg); color: var(--fg); outline: none; transition: border 0.2s; }
-    input:focus, textarea:focus, select:focus { border-color: var(--border-hover); }
-    
-    /* Buttons */
-    button { padding: 10px 16px; border-radius: var(--radius); font-weight: 500; font-size: 14px; cursor: pointer; transition: all 0.2s; border: 1px solid transparent; display: inline-flex; align-items: center; justify-content: center; gap: 8px; }
-    .btn-primary { background: var(--accent); color: var(--accent-fg); border-color: var(--accent); }
-    .btn-primary:hover { background: #333; }
-    .btn-secondary { background: var(--bg); color: var(--fg); border-color: var(--border); }
-    .btn-secondary:hover { background: var(--bg-muted); }
-    .btn-primary:disabled { opacity: 0.5; cursor: not-allowed; }
-    
-    /* Component Picker */
-    .picker-wrap { display: flex; gap: 8px; margin-bottom: 12px; }
-    .picker-wrap input { flex: 1; }
-    .chip-list { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 12px; }
-    .chip { padding: 4px 10px; border: 1px solid var(--border); border-radius: 16px; font-size: 12px; cursor: pointer; background: var(--bg-muted); color: var(--fg-muted); transition: all 0.2s; }
-    .chip:hover { border-color: var(--border-hover); color: var(--fg); }
-    
-    /* Added Items */
-    .item-list { display: flex; flex-direction: column; gap: 8px; }
-    .item-row { display: flex; align-items: center; justify-content: space-between; padding: 10px 12px; border: 1px solid var(--border); border-radius: var(--radius); font-size: 14px; }
-    .item-remove { cursor: pointer; color: var(--fg-muted); border: none; background: none; padding: 4px; display: flex; align-items: center; justify-content: center; }
-    .item-remove:hover { color: var(--error); }
-    
-    /* SVG Icons */
-    .icon { width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
-    
-    /* Results */
-    .results-panel { position: sticky; top: 24px; }
-    .empty-state { text-align: center; padding: 48px 24px; color: var(--fg-muted); border: 1px dashed var(--border); border-radius: var(--radius); }
-    .empty-icon { width: 48px; height: 48px; margin: 0 auto 16px; opacity: 0.2; }
-    
-    .loading-state { text-align: center; padding: 48px 24px; display: none; }
-    .spinner { animation: spin 1s linear infinite; width: 24px; height: 24px; margin: 0 auto 16px; }
-    @keyframes spin { 100% { transform: rotate(360deg); } }
-    
-    .results-content { display: none; }
-    
-    .score-card { display: flex; align-items: center; gap: 24px; padding: 24px; border: 1px solid var(--border); border-radius: var(--radius); margin-bottom: 24px; }
-    .score-circle { width: 80px; height: 80px; position: relative; }
-    .score-circle svg { transform: rotate(-90deg); width: 100%; height: 100%; }
-    .score-bg { fill: none; stroke: var(--border); stroke-width: 8; }
-    .score-progress { fill: none; stroke: var(--info); stroke-width: 8; stroke-dasharray: 251; stroke-dashoffset: 251; transition: stroke-dashoffset 1s ease; }
-    .score-text { position: absolute; top: 0; left: 0; right: 0; bottom: 0; display: flex; align-items: center; justify-content: center; font-size: 24px; font-weight: 600; }
-    .score-meta h3 { font-size: 18px; margin-bottom: 4px; }
-    
-    /* Issue Cards */
-    .issue { padding: 16px; border: 1px solid var(--border); border-radius: var(--radius); margin-bottom: 12px; display: flex; gap: 12px; }
-    .issue-icon { width: 20px; height: 20px; flex-shrink: 0; margin-top: 2px; }
-    .issue-title { font-weight: 600; font-size: 14px; margin-bottom: 4px; }
-    .issue-desc { font-size: 13px; color: var(--fg-muted); margin-bottom: 8px; }
-    .issue-fix { font-size: 13px; background: var(--bg-muted); padding: 8px 12px; border-radius: 4px; border: 1px solid var(--border); display: flex; gap: 8px; align-items: flex-start; }
-    
-    .sev-critical { border-color: var(--error); background: var(--error-bg); }
-    .sev-critical .issue-icon { stroke: var(--error); }
-    .sev-warning { border-color: var(--warn); background: var(--warn-bg); }
-    .sev-warning .issue-icon { stroke: var(--warn); }
-    .sev-improvement { border-color: var(--info); background: var(--info-bg); }
-    .sev-improvement .issue-icon { stroke: var(--info); }
-    
-    /* Table */
-    .table-wrap { overflow-x: auto; border: 1px solid var(--border); border-radius: var(--radius); margin-top: 24px; }
-    table { width: 100%; border-collapse: collapse; text-align: left; font-size: 13px; }
-    th, td { padding: 12px 16px; border-bottom: 1px solid var(--border); }
-    th { font-weight: 500; color: var(--fg-muted); background: var(--bg-muted); }
-    tr:last-child td { border-bottom: none; }
-    .badge { padding: 2px 8px; border-radius: 12px; font-size: 11px; font-weight: 500; text-transform: uppercase; border: 1px solid var(--border); }
-    .badge.ok { border-color: var(--info); color: var(--info); background: var(--info-bg); }
-    .badge.warning { border-color: var(--warn); color: var(--warn); background: var(--warn-bg); }
-    .badge.critical { border-color: var(--error); color: var(--error); background: var(--error-bg); }
-    
-  </style>
-</head>
-<body>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>BotCheck - Hardware Validator</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+  </head>
+  <body>
+    <div class="app-layout">
+      <!-- Navbar -->
+      <header class="navbar">
+        <div class="nav-brand">
+          <svg class="icon brand-icon" viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="10" rx="2"/><circle cx="12" cy="5" r="2"/><path d="M12 7v4"/><line x1="8" y1="16" x2="8" y2="16"/><line x1="16" y1="16" x2="16" y2="16"/></svg>
+          <h1>BotCheck</h1>
+        </div>
+        <div class="nav-links">
+          <a href="#" class="active">Validator</a>
+          <a href="#">Docs</a>
+          <a href="#">Settings</a>
+        </div>
+      </header>
 
-<div class="container">
-  
-  <!-- Left Column: Form -->
-  <div class="form-panel">
-    <h1>
-      <svg class="icon" viewBox="0 0 24 24"><rect x="2" y="2" width="20" height="8" rx="2"/><rect x="2" y="14" width="20" height="8" rx="2"/><line x1="6" y1="6" x2="6.01" y2="6"/><line x1="6" y1="18" x2="6.01" y2="18"/></svg>
-      BotCheck
-    </h1>
-    <p>AI-powered hardware compatibility validator.</p>
-    
-    <div class="card">
-      <h2>Project Details</h2>
-      <div class="field">
-        <label>Robot Type</label>
-        <select id="proj-type">
-          <option value="Wheeled Robot">Wheeled Robot</option>
-          <option value="Drone / Quadcopter">Drone / Quadcopter</option>
-          <option value="Robotic Arm">Robotic Arm</option>
-          <option value="IoT / Smart Device">IoT / Smart Device</option>
-          <option value="Custom">Custom / Other</option>
-        </select>
-      </div>
-      <div class="field">
-        <label>Description</label>
-        <textarea id="proj-desc" rows="3" placeholder="e.g. A 2-wheel drive line-following robot for a school competition. Running on AA batteries."></textarea>
-      </div>
-    </div>
-    
-    <div class="card">
-      <h2>Components</h2>
-      
-      <!-- Controller -->
-      <div class="field">
-        <label>Controller / Brain (Required)</label>
-        <div class="picker-wrap">
-          <input type="text" id="in-brain" placeholder="Type custom or select below...">
-          <button class="btn-secondary" onclick="addSingleItem('brain')">Set</button>
-        </div>
-        <div class="chip-list">
-          <span class="chip" onclick="setSingle('brain', 'Arduino Uno')">Arduino Uno</span>
-          <span class="chip" onclick="setSingle('brain', 'ESP32')">ESP32</span>
-          <span class="chip" onclick="setSingle('brain', 'Raspberry Pi Pico')">RPi Pico</span>
-        </div>
-        <div id="list-brain" class="item-list"></div>
-      </div>
-      
-      <!-- Power -->
-      <div class="field">
-        <label>Power Source (Required)</label>
-        <div class="picker-wrap">
-          <input type="text" id="in-power" placeholder="Type custom or select below...">
-          <button class="btn-secondary" onclick="addSingleItem('power')">Set</button>
-        </div>
-        <div class="chip-list">
-          <span class="chip" onclick="setSingle('power', '2S LiPo (7.4V)')">2S LiPo</span>
-          <span class="chip" onclick="setSingle('power', '4x AA Batteries')">4x AA</span>
-          <span class="chip" onclick="setSingle('power', '9V Battery')">9V Battery</span>
-        </div>
-        <div id="list-power" class="item-list"></div>
-      </div>
-      
-      <!-- Motors -->
-      <div class="field">
-        <label>Motors (Required)</label>
-        <div class="picker-wrap">
-          <input type="text" id="in-motors" placeholder="Type custom or select below...">
-          <button class="btn-secondary" onclick="addMultiItem('motors')">Add</button>
-        </div>
-        <div class="chip-list">
-          <span class="chip" onclick="addMulti('motors', 'N20 Gear Motor 6V')">N20 6V</span>
-          <span class="chip" onclick="addMulti('motors', 'SG90 Servo')">SG90 Servo</span>
-          <span class="chip" onclick="addMulti('motors', 'NEMA 17 Stepper')">NEMA 17</span>
-        </div>
-        <div id="list-motors" class="item-list"></div>
-      </div>
-      
-      <!-- Motor Driver -->
-      <div class="field">
-        <label>Motor Driver (Optional)</label>
-        <div class="picker-wrap">
-          <input type="text" id="in-driver" placeholder="Type custom or select below...">
-          <button class="btn-secondary" onclick="addSingleItem('driver')">Set</button>
-        </div>
-        <div class="chip-list">
-          <span class="chip" onclick="setSingle('driver', 'L298N')">L298N</span>
-          <span class="chip" onclick="setSingle('driver', 'TB6612FNG')">TB6612FNG</span>
-          <span class="chip" onclick="setSingle('driver', 'A4988')">A4988</span>
-        </div>
-        <div id="list-driver" class="item-list"></div>
-      </div>
-      
-      <!-- Sensors & Comms -->
-      <div class="field">
-        <label>Sensors & Extras (Optional)</label>
-        <div class="picker-wrap">
-          <input type="text" id="in-sensors" placeholder="Type custom or select below...">
-          <button class="btn-secondary" onclick="addMultiItem('sensors')">Add</button>
-        </div>
-        <div class="chip-list">
-          <span class="chip" onclick="addMulti('sensors', 'HC-SR04 Ultrasonic')">HC-SR04</span>
-          <span class="chip" onclick="addMulti('sensors', 'MPU6050 IMU')">MPU6050</span>
-          <span class="chip" onclick="addMulti('sensors', 'HC-05 Bluetooth')">HC-05</span>
-        </div>
-        <div id="list-sensors" class="item-list"></div>
-      </div>
-      
-    </div>
-    
-    <button class="btn-primary" id="btn-analyze" style="width: 100%; padding: 14px; font-size: 16px;">
-      <svg class="icon" viewBox="0 0 24 24"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
-      Analyze Build
-    </button>
-  </div>
-  
-  <!-- Right Column: Results -->
-  <div class="results-panel">
-    
-    <div id="state-empty" class="empty-state">
-      <svg class="empty-icon icon" viewBox="0 0 24 24"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
-      <h2>Ready to Analyze</h2>
-      <p>Add your components on the left and click Analyze Build to see compatibility checks.</p>
-    </div>
-    
-    <div id="state-loading" class="loading-state">
-      <svg class="spinner icon" viewBox="0 0 24 24"><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg>
-      <h2>Analyzing your hardware...</h2>
-      <p>Running checks on voltages, currents, and logic levels.</p>
-    </div>
-    
-    <div id="state-results" class="results-content">
-      
-      <div class="score-card">
-        <div class="score-circle">
-          <svg viewBox="0 0 100 100">
-            <circle class="score-bg" cx="50" cy="50" r="40"/>
-            <circle class="score-progress" id="score-arc" cx="50" cy="50" r="40"/>
-          </svg>
-          <div class="score-text" id="score-val">0</div>
-        </div>
-        <div class="score-meta">
-          <h3 id="verdict-title">Review</h3>
-          <p id="verdict-desc" style="margin:0; font-size:14px;"></p>
-        </div>
-      </div>
-      
-      <div id="issues-container"></div>
-      
-      <div class="table-wrap">
-        <table>
-          <thead>
-            <tr>
-              <th>Component</th>
-              <th>Role</th>
-              <th>Status</th>
-            </tr>
-          </thead>
-          <tbody id="components-tbody">
-          </tbody>
-        </table>
-      </div>
-      
-    </div>
-    
-  </div>
-
-</div>
-
-<script>
-const state = {
-  brain: null,
-  power: null,
-  driver: null,
-  motors: [],
-  sensors: []
-};
-
-// SVG Icons
-const icons = {
-  x: '<svg class="icon" viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>',
-  alert: '<svg class="icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>',
-  check: '<svg class="icon" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>',
-  tool: '<svg class="icon" viewBox="0 0 24 24"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg>'
-};
-
-// UI Functions
-function renderList(key, isSingle) {
-  const container = document.getElementById(`list-${key}`);
-  container.innerHTML = '';
-  
-  if (isSingle) {
-    if (state[key]) {
-      container.innerHTML = `<div class="item-row">
-        <span>${state[key]}</span>
-        <button class="item-remove" onclick="removeSingle('${key}')">${icons.x}</button>
-      </div>`;
-    }
-  } else {
-    state[key].forEach((item, index) => {
-      container.innerHTML += `<div class="item-row">
-        <span>${item}</span>
-        <button class="item-remove" onclick="removeMulti('${key}', ${index})">${icons.x}</button>
-      </div>`;
-    });
-  }
-}
-
-function setSingle(key, val) {
-  state[key] = val;
-  document.getElementById(`in-${key}`).value = '';
-  renderList(key, true);
-}
-function removeSingle(key) {
-  state[key] = null;
-  renderList(key, true);
-}
-function addSingleItem(key) {
-  const val = document.getElementById(`in-${key}`).value.trim();
-  if (val) setSingle(key, val);
-}
-
-function addMulti(key, val) {
-  state[key].push(val);
-  document.getElementById(`in-${key}`).value = '';
-  renderList(key, false);
-}
-function removeMulti(key, idx) {
-  state[key].splice(idx, 1);
-  renderList(key, false);
-}
-function addMultiItem(key) {
-  const val = document.getElementById(`in-${key}`).value.trim();
-  if (val) addMulti(key, val);
-}
-
-// Default items for quick testing
-setSingle('brain', 'Arduino Uno');
-setSingle('power', '9V Battery');
-addMulti('motors', '2x TT Gear Motors');
-
-// Analysis
-document.getElementById('btn-analyze').addEventListener('click', async () => {
-  if (!state.brain || !state.power || state.motors.length === 0) {
-    alert('Brain, Power, and at least 1 Motor are required.');
-    return;
-  }
-  
-  document.getElementById('state-empty').style.display = 'none';
-  document.getElementById('state-results').style.display = 'none';
-  document.getElementById('state-loading').style.display = 'block';
-  document.getElementById('btn-analyze').disabled = true;
-  
-  const payload = {
-    robotType: document.getElementById('proj-type').value,
-    projectDesc: document.getElementById('proj-desc').value,
-    brain: state.brain,
-    power: state.power,
-    motorDriver: state.driver || 'None',
-    motors: state.motors,
-    sensors: state.sensors,
-    comms: []
-  };
-
-  try {
-    const res = await fetch('/api/validate', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(payload)
-    });
-    
-    if (!res.ok) throw new Error(await res.text());
-    
-    const data = await res.json();
-    renderResults(data);
-    
-  } catch (err) {
-    alert('Error analyzing build: ' + err.message);
-    document.getElementById('state-loading').style.display = 'none';
-    document.getElementById('state-empty').style.display = 'block';
-  } finally {
-    document.getElementById('btn-analyze').disabled = false;
-  }
-});
-
-function renderResults(data) {
-  document.getElementById('state-loading').style.display = 'none';
-  document.getElementById('state-results').style.display = 'block';
-  
-  // Score
-  const score = data.overall.score || 0;
-  document.getElementById('score-val').textContent = score;
-  const offset = 251 - (251 * score) / 100;
-  setTimeout(() => {
-    const arc = document.getElementById('score-arc');
-    arc.style.strokeDashoffset = offset;
-    if (score < 50) arc.style.stroke = 'var(--error)';
-    else if (score < 80) arc.style.stroke = 'var(--warn)';
-    else arc.style.stroke = 'var(--success)';
-  }, 50);
-  
-  document.getElementById('verdict-title').textContent = data.overall.verdict.replace(/_/g, ' ');
-  document.getElementById('verdict-desc').textContent = data.overall.summary;
-  
-  // Issues
-  const issuesContainer = document.getElementById('issues-container');
-  issuesContainer.innerHTML = '';
-  
-  if (data.issues && data.issues.length > 0) {
-    data.issues.forEach(issue => {
-      const sev = issue.severity.toLowerCase();
-      let html = `
-        <div class="issue sev-${sev}">
-          <div class="issue-icon">${sev === 'improvement' ? icons.check : icons.alert}</div>
-          <div>
-            <div class="issue-title">${issue.category}: ${issue.title}</div>
-            <div class="issue-desc">${issue.detail}</div>
-            ${issue.fix ? `<div class="issue-fix"><div>${icons.tool}</div><div>${issue.fix}</div></div>` : ''}
+      <main class="main-content">
+        <!-- Configuration Column -->
+        <section class="config-panel">
+          <div class="panel-header">
+            <h2>Hardware Configuration</h2>
+            <p class="subtitle">Select your robot's components to validate compatibility.</p>
           </div>
-        </div>
-      `;
-      issuesContainer.innerHTML += html;
-    });
-  } else {
-    issuesContainer.innerHTML = '<div class="issue" style="background:var(--bg-muted);justify-content:center;color:var(--fg-muted)">No issues found! Great job.</div>';
-  }
-  
-  // Components Table
-  const tbody = document.getElementById('components-tbody');
-  tbody.innerHTML = '';
-  if (data.components) {
-    data.components.forEach(comp => {
-      const st = (comp.status || 'UNKNOWN').toLowerCase();
-      tbody.innerHTML += `
-        <tr>
-          <td><strong>${comp.name}</strong><br><span style="color:var(--fg-muted);font-size:12px">${comp.note || ''}</span></td>
-          <td>${comp.role}</td>
-          <td><span class="badge ${st}">${st}</span></td>
-        </tr>
-      `;
-    });
-  }
-}
-</script>
 
-</body>
+          <div class="form-group">
+            <label>Robot Archetype</label>
+            <div class="select-wrapper">
+              <select id="proj-type" class="sleek-input">
+                <option value="Differential Drive">Differential Drive Base</option>
+                <option value="Line Follower Robot">Line Follower Robot (LFR)</option>
+                <option value="Soccerbot">Soccerbot</option>
+                <option value="Maze Solver">Maze Solver</option>
+                <option value="Drone">Quadrotor Drone</option>
+                <option value="Arm">Robotic Arm</option>
+                <option value="Bipedal">Bipedal Humanoid</option>
+                <option value="Combat Bot">Combat Bot</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label>Target Speed / Specific Requirements</label>
+            <input type="text" id="target-speed" class="sleek-input" placeholder="e.g. 500 RPM, needs to push 2kg..." />
+          </div>
+
+          <!-- Component Pickers -->
+          <div class="picker-section">
+            <div class="picker-header">
+              <label>Logic Unit</label>
+              <span class="required-badge">Required</span>
+            </div>
+            <div class="card-grid" id="grid-brain">
+              <!-- Rendered via JS -->
+            </div>
+          </div>
+
+          <div class="picker-section">
+            <div class="picker-header">
+              <label>Power Cell</label>
+              <span class="required-badge">Required</span>
+            </div>
+            <div class="card-grid" id="grid-power">
+              <!-- Rendered via JS -->
+            </div>
+          </div>
+
+          <div class="picker-section">
+            <div class="picker-header">
+              <label>Actuators</label>
+              <span class="required-badge">Required</span>
+            </div>
+            <div class="card-grid" id="grid-motors">
+              <!-- Rendered via JS -->
+            </div>
+          </div>
+
+          <div class="picker-section">
+            <div class="picker-header">
+              <label>Sensors & Extras</label>
+              <span class="required-badge" style="background: transparent; color: var(--text-secondary); border: none;">Optional</span>
+            </div>
+            <div class="card-grid" id="grid-sensors">
+              <!-- Rendered via JS -->
+            </div>
+          </div>
+
+          <button id="btn-analyze" class="btn-primary">
+            Analyze Configuration
+          </button>
+        </section>
+
+        <!-- Results Column -->
+        <section class="results-panel">
+          <!-- Standby State -->
+          <div id="state-empty" class="state-container">
+            <div class="state-content">
+              <svg class="icon huge-icon" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+              <h3>Ready to Validate</h3>
+              <p>Select your components and run the analysis to detect hardware incompatibilities.</p>
+            </div>
+          </div>
+
+          <!-- Loading State -->
+          <div id="state-loading" class="state-container" style="display: none;">
+            <div class="state-content">
+              <div class="spinner"></div>
+              <h3>Analyzing Configuration</h3>
+              <p>Running physics and electrical validation models...</p>
+            </div>
+          </div>
+
+          <!-- Results State -->
+          <div id="state-results" class="results-container" style="display: none;">
+            
+            <div class="score-card">
+              <div class="score-circle">
+                <svg viewBox="0 0 36 36" class="circular-chart">
+                  <path class="circle-bg"
+                    d="M18 2.0845
+                      a 15.9155 15.9155 0 0 1 0 31.831
+                      a 15.9155 15.9155 0 0 1 0 -31.831"
+                  />
+                  <path class="circle" id="score-ring"
+                    stroke-dasharray="100, 100"
+                    d="M18 2.0845
+                      a 15.9155 15.9155 0 0 1 0 31.831
+                      a 15.9155 15.9155 0 0 1 0 -31.831"
+                  />
+                </svg>
+                <div class="score-value" id="score-val">100</div>
+              </div>
+              <div class="score-details">
+                <h3 id="verdict-title">Perfect Build</h3>
+                <p id="verdict-desc">All systems nominal.</p>
+              </div>
+            </div>
+
+            <div class="results-section">
+              <h4>Diagnostic Issues</h4>
+              <div id="issues-container"></div>
+            </div>
+
+            <div class="results-section" id="recommendations-section" style="display: none;">
+              <h4>AI Recommendations</h4>
+              <div id="recommendations-container"></div>
+            </div>
+            
+            <div class="results-section">
+              <h4>Component Status</h4>
+              <div class="table-container">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>Component</th>
+                      <th>Role</th>
+                      <th>Status</th>
+                    </tr>
+                  </thead>
+                  <tbody id="components-tbody"></tbody>
+                </table>
+              </div>
+            </div>
+
+          </div>
+        </section>
+      </main>
+    </div>
+    <script type="module" src="/src/main.js"></script>
+  </body>
 </html>

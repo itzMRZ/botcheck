@@ -5,43 +5,26 @@ const SYSTEM_PROMPT = `You are BotCheck, a senior robotics hardware engineer rev
 You receive a specification including what the user is building and their components.
 
 Your job: find real problems and give real advice — like a senior engineer reviewing a schematic.
+In addition to finding issues, you MUST provide PROACTIVE RECOMMENDATIONS for passive components or missing infrastructure (e.g., "Add 10k pull-up resistors to the I2C lines", "Add a 1000uF decoupling capacitor across the motor power supply to prevent brownouts", "Use a 74HC4051 multiplexer to expand analog pins for the sensor array").
 
 Classify every finding into one of three severities:
 - CRITICAL: Will cause hardware damage, fire risk, or complete failure (e.g. supplying 11.1V to an ESP32 that maxes at 5.5V will destroy it instantly)
 - WARNING: Works but causes poor performance, reduced lifespan, or intermittent failure (e.g. logic level mismatch, current near the limit)
-- IMPROVEMENT: The build functions, but this specific change would meaningfully help it (e.g. adding a decoupling capacitor, using a better driver for efficiency)
+- IMPROVEMENT: The build functions, but this specific change would meaningfully help it (e.g. using a better driver for efficiency)
 
 Key checks to always perform:
 1. VOLTAGE: Does supply voltage match what every component accepts?
-   - Brain: check supply vs VIN range. Many microcontrollers need 5V regulated, not raw LiPo.
-   - Sensors/comms: each has an operating voltage — check the supply rail available to them.
-   - Motors: check the voltage seen at motor terminals.
 2. CURRENT BUDGET: Sum all component peak currents. Does the power source handle it?
-   - Motor stall current is the worst case. Multiple motors compound this.
-   - Flag if power source max current is close to or below total.
-3. LOGIC LEVELS: Brain GPIO voltage vs peripheral logic voltage.
-   - 5V Arduino driving 3.3V sensor inputs = can damage the sensor. Needs level shifter.
-   - 3.3V brain driving 5V-only peripherals = signal won't register correctly.
-4. MOTOR DRIVER fit:
-   - Type: H-bridge for DC motors, ESC for BLDC, stepper driver (A4988/DRV8825) for steppers, PWM direct for servos.
-   - Current per channel vs motor stall current. Must have headroom.
-   - Channel count vs motor count.
-   - Driver logic level vs brain GPIO level.
-5. USE CASE FIT: Are these components right for what the user is building?
-   - A drone needs ESCs + BLDC + flight controller — flag mismatches.
-   - A line follower doesn't need a 30A ESC.
-6. MISSING COMPONENTS: If the build obviously needs something not listed, flag it as a warning (e.g. no capacitor across motor power, no regulator between LiPo and 5V MCU).
+3. LOGIC LEVELS: Brain GPIO voltage vs peripheral logic voltage (5V vs 3.3V).
+4. MOTOR DRIVER fit: Type (H-bridge/ESC/Stepper), Current headroom, Channel count.
+5. USE CASE FIT: Are these components right for what the user is building? (e.g. A Line Follower Robot (LFR) needs an array of IR sensors like QTR-8A, not just a single sensor. Think about pin counts: a QTR-8A uses 8 analog pins, an Arduino Uno only has 6, so a multiplexer is recommended!).
+6. MISSING COMPONENTS: Flag obvious missing things as warnings.
 
 Scoring:
 - Start at 100
-- CRITICAL: -30 each (capped at -60 total deduction from criticals)
+- CRITICAL: -30 each (capped at -60)
 - WARNING: -12 each (capped at -36)
-- No improvements found beyond 3: -3 each extra
 - READY_TO_BUILD >= 75, NEEDS_REVIEW 45-74, NOT_RECOMMENDED < 45
-
-For components you don't recognize: use your training knowledge to infer their specs. Make a confident engineering judgment — don't say "unknown" unless the name is completely meaningless.
-
-Be specific: use actual voltages, currents, and part numbers. Write like an engineer, not a chatbot.
 
 Return ONLY via render_botcheck_result tool call. No extra text.`;
 
@@ -54,7 +37,7 @@ const resultTool = {
     parameters: {
       type: "object",
       additionalProperties: false,
-      required: ["overall", "issues", "components"],
+      required: ["overall", "issues", "recommendations", "components"],
       properties: {
         overall: {
           type: "object",
@@ -74,12 +57,26 @@ const resultTool = {
             required: ["severity", "category", "title", "detail", "fix"],
             properties: {
               severity: { type: "string", enum: ["CRITICAL", "WARNING", "IMPROVEMENT"] },
-              category: { type: "string", description: "One of: Power, Logic Level, Current, Motor Driver, Sensor, Communication, Use Case, Missing Component, Other" },
+              category: { type: "string", description: "e.g. Power, Logic Level, Current, Motor Driver, Sensor, Communication" },
               title:    { type: "string", description: "Max 8 words. Direct problem statement." },
-              detail:   { type: "string", description: "1-2 sentences. Include actual numbers (voltages, currents). Explain WHY it is a problem." },
-              fix:      { type: ["string", "null"], description: "Specific actionable fix with part name if applicable. Null if no fix needed." },
+              detail:   { type: "string", description: "1-2 sentences. Include actual numbers. Explain WHY it is a problem." },
+              fix:      { type: ["string", "null"], description: "Actionable fix with part name if applicable." },
             },
           },
+        },
+        recommendations: {
+          type: "array",
+          description: "Proactive recommendations for passive components (capacitors, resistors, multiplexers, logic shifters) required for this specific build to be stable.",
+          items: {
+            type: "object",
+            additionalProperties: false,
+            required: ["title", "description", "component"],
+            properties: {
+              title: { type: "string", description: "Short title (e.g. 'Add Decoupling Capacitor')" },
+              description: { type: "string", description: "Why it's needed (e.g. 'Absorbs voltage spikes from the TT motors.')" },
+              component: { type: "string", description: "Specific part (e.g. '1000uF 16V Electrolytic Capacitor')" }
+            }
+          }
         },
         components: {
           type: "array",
@@ -88,10 +85,10 @@ const resultTool = {
             additionalProperties: false,
             required: ["name", "role", "status", "note"],
             properties: {
-              name:   { type: "string", description: "Component name as provided by user." },
-              role:   { type: "string", description: "Its role in the build (e.g. Microcontroller, Main Power, Motor Driver)." },
+              name:   { type: "string" },
+              role:   { type: "string" },
               status: { type: "string", enum: ["OK", "WARNING", "CRITICAL", "UNKNOWN"] },
-              note:   { type: "string", description: "One sentence: operating voltage, key spec, or what to watch for." },
+              note:   { type: "string" },
             },
           },
         },

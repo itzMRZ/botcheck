@@ -4,7 +4,14 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "vercel dev --listen 127.0.0.1:3000",
-    "check": "node --check api/validate.js"
+    "dev": "vite",
+    "check": "node --check api/validate.js",
+    "build": "vite build",
+    "preview": "vite preview",
+    "start": "vercel dev --listen 127.0.0.1:3000"
+  },
+  "devDependencies": {
+    "vercel": "^54.18.1",
+    "vite": "^8.1.0"
   }
 }
